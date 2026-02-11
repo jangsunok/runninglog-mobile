@@ -25,24 +25,34 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="run"
+        name="calendar"
         options={{
           title: '기록',
-          tabBarIcon: ({ color }) => <MaterialIcons name="directions-run" size={26} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialIcons name="calendar-today" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="training"
+        options={{
+          title: '트레이닝',
+          tabBarIcon: ({ color }) => <MaterialIcons name="emoji-events" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="my"
         options={{
-          title: '마이페이지',
-          tabBarIcon: ({ color }) => <MaterialIcons name="person" size={26} color={color} />,
+          title: '마이',
+          tabBarIcon: ({ color }) => <MaterialIcons name="person-outline" size={24} color={color} />,
         }}
+      />
+      {/* Hidden tabs */}
+      <Tabs.Screen
+        name="run"
+        options={{ tabBarButton: () => null }}
       />
       <Tabs.Screen
         name="consult"
-        options={{
-          tabBarButton: () => null,
-        }}
+        options={{ tabBarButton: () => null }}
       />
     </Tabs>
   );

@@ -47,6 +47,7 @@ function RootLayoutNav() {
         {isLoggedIn ? (
           <>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="analyze" />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </>
         ) : (
