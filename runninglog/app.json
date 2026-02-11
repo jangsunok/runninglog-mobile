@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "러닝로그",
+    "slug": "runninglog",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/runninglog.png",
+    "scheme": "runninglog",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "life.runninglog"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/images/runninglog.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "life.runninglog"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/runninglog.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "러닝 경로를 기록하기 위해 백그라운드에서도 위치 정보가 필요합니다.",
+          "locationWhenInUsePermission": "러닝 경로를 기록하기 위해 위치 정보가 필요합니다.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/runninglog.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      "expo-secure-store",
+      [
+        "@react-native-kakao/core",
+        {
+          "nativeAppKey": "0b2efce11a03611639a6f1c1ae6193b9"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8b37052f-f22e-492e-834f-5b1c91903b5f"
+      }
+    },
+    "owner": "jangsunok",
+    "updates": {
+      "url": "https://u.expo.dev/8b37052f-f22e-492e-834f-5b1c91903b5f"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
