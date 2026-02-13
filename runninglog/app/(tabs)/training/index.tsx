@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   ScrollView,
   View,
@@ -12,50 +13,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Medals } from '@/constants/assets';
 import { BrandOrange, F } from '@/constants/theme';
-
-// ─── 목업 데이터 ───────────────────────────────────────────────
-const MOCK_ACHIEVEMENTS = [
-  {
-    id: '5km' as const,
-    label: '5km',
-    unlocked: true,
-    isNewRecord: true,
-    time: '15분 32초',
-    date: '2025년 1월 31일 13:52',
-  },
-  {
-    id: '10km' as const,
-    label: '10km',
-    unlocked: true,
-    isNewRecord: false,
-    time: '15분 32초',
-    date: '2025년 1월 31일 19:32',
-  },
-  {
-    id: 'half' as const,
-    label: 'HALF',
-    unlocked: false,
-    isNewRecord: false,
-    time: null,
-    date: null,
-  },
-  {
-    id: 'full' as const,
-    label: 'FULL',
-    unlocked: false,
-    isNewRecord: false,
-    time: null,
-    date: null,
-  },
-];
+import { getCurrentGoal, createGoal, deleteGoal } from '@/lib/api/goals';
+import { getCurrentAchievements } from '@/lib/api/achievements';
+import type { Goal, GoalType as ApiGoalType, Achievement } from '@/types/api';
 
 // ─── 목표 유형 세그먼트 ────────────────────────────────────────
 type GoalType = 'distance' | 'time' | 'count';
 
-const GOAL_SEGMENTS: { key: GoalType; icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
-  { key: 'distance', icon: 'route', label: '거리' },
-  { key: 'time', icon: 'schedule', label: '시간' },
-  { key: 'count', icon: 'tag', label: '횟수' },
+const GOAL_SEGMENTS: { key: GoalType; apiKey: ApiGoalType; icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
+  { key: 'distance', apiKey: 'DISTANCE', icon: 'route', label: '거리' },
+  { key: 'time', apiKey: 'TIME', icon: 'schedule', label: '시간' },
+  { key: 'count', apiKey: 'COUNT', icon: 'tag', label: '횟수' },
 ];
 
 const UNIT_MAP: Record<GoalType, string> = {
@@ -76,37 +44,120 @@ const LABEL_MAP: Record<GoalType, string> = {
   count: '목표 횟수',
 };
 
+const API_TO_LOCAL: Record<ApiGoalType, GoalType> = {
+  DISTANCE: 'distance',
+  TIME: 'time',
+  COUNT: 'count',
+};
+
 // ─── 현재 월 표시 헬퍼 ─────────────────────────────────────────
 function getCurrentMonthLabel(): string {
   const month = new Date().getMonth() + 1;
   return `${month}월의`;
 }
 
+type MedalId = '5km' | '10km' | 'half' | 'full';
+
+const DISTANCE_TYPE_MAP: Record<string, MedalId> = {
+  '5K': '5km',
+  '10K': '10km',
+  'HALF': 'half',
+  'FULL': 'full',
+};
+
 // ═══════════════════════════════════════════════════════════════
 // 메인 화면
 // ═══════════════════════════════════════════════════════════════
 export default function TrainingScreen() {
-  // 목표 상태
-  const [hasGoal, setHasGoal] = useState(true);
-  const [goalText, setGoalText] = useState('500KM 달리기');
-  const [goalCurrent, setGoalCurrent] = useState(324);
-  const [goalTarget, setGoalTarget] = useState(500);
-
-  // 모달 상태
+  const [goal, setGoal] = useState<Goal | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
 
   const monthLabel = getCurrentMonthLabel();
-  const progressPercent = goalTarget > 0 ? Math.round((goalCurrent / goalTarget) * 100) : 0;
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [goalData, achieveData] = await Promise.all([
+        getCurrentGoal(),
+        getCurrentAchievements(),
+      ]);
+      setGoal(goalData);
+      setAchievements(achieveData.achievements);
+    } catch {
+      // fallback: 빈 상태
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const hasGoal = goal !== null;
+  const progressPercent = goal
+    ? Math.round((goal.current_value / goal.target_value) * 100)
+    : 0;
+
+  const goalTypeLocal = goal ? API_TO_LOCAL[goal.goal_type] : 'distance';
+  const goalUnit = UNIT_MAP[goalTypeLocal];
+  const goalText = goal
+    ? `${goal.target_value}${goalUnit.toUpperCase()} 달리기`
+    : '';
 
   // 목표 설정 완료 콜백
-  const handleGoalSet = (type: GoalType, value: number) => {
-    const unit = UNIT_MAP[type];
-    setGoalText(`${value}${unit.toUpperCase()} 달리기`);
-    setGoalTarget(value);
-    setGoalCurrent(0);
-    setHasGoal(true);
+  const handleGoalSet = async (type: GoalType, value: number) => {
+    const seg = GOAL_SEGMENTS.find((s) => s.key === type);
+    if (!seg) return;
     setModalVisible(false);
+    try {
+      const created = await createGoal({ goal_type: seg.apiKey, target_value: value });
+      setGoal(created);
+    } catch {
+      // silent
+    }
   };
+
+  const handleGoalDelete = async () => {
+    if (!goal) return;
+    try {
+      await deleteGoal(goal.id);
+      setGoal(null);
+    } catch {
+      // silent
+    }
+  };
+
+  // 메달 데이터 구성
+  const medalItems = (['5K', '10K', 'HALF', 'FULL'] as const).map((distType) => {
+    const medalId = DISTANCE_TYPE_MAP[distType] as MedalId;
+    const achieve = achievements.find((a) => a.distance_type === distType);
+    return {
+      id: medalId,
+      label: distType === 'HALF' ? 'HALF' : distType === 'FULL' ? 'FULL' : distType.toLowerCase(),
+      unlocked: !!achieve,
+      isNewRecord: achieve?.is_personal_record ?? false,
+      time: achieve?.best_time_display ?? null,
+      date: achieve
+        ? new Date(achieve.created_at).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null,
+    };
+  });
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={BrandOrange} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -127,7 +178,7 @@ export default function TrainingScreen() {
             <TouchableOpacity
               style={styles.goalCard}
               activeOpacity={0.7}
-              onPress={() => setHasGoal(false)}
+              onPress={handleGoalDelete}
             >
               <Text style={styles.goalTitle}>{goalText}</Text>
               <View style={styles.progressBarBg}>
@@ -140,8 +191,8 @@ export default function TrainingScreen() {
               </View>
               <View style={styles.progressRow}>
                 <View style={styles.progressTextRow}>
-                  <Text style={styles.progressValue}>{goalCurrent}</Text>
-                  <Text style={styles.progressUnit}>km / {goalTarget}km</Text>
+                  <Text style={styles.progressValue}>{goal!.current_value}</Text>
+                  <Text style={styles.progressUnit}>{goalUnit} / {goal!.target_value}{goalUnit}</Text>
                 </View>
                 <View style={styles.percentBadge}>
                   <Text style={styles.percentText}>{progressPercent}%</Text>
@@ -176,7 +227,7 @@ export default function TrainingScreen() {
 
           {/* 메달 그리드 */}
           <View style={styles.medalGrid}>
-            {MOCK_ACHIEVEMENTS.map((medal) => (
+            {medalItems.map((medal) => (
               <MedalCard key={medal.id} medal={medal} />
             ))}
           </View>
@@ -199,19 +250,24 @@ export default function TrainingScreen() {
 function MedalCard({
   medal,
 }: {
-  medal: (typeof MOCK_ACHIEVEMENTS)[number];
+  medal: {
+    id: MedalId;
+    label: string;
+    unlocked: boolean;
+    isNewRecord: boolean;
+    time: string | null;
+    date: string | null;
+  };
 }) {
   const isLocked = !medal.unlocked;
   const medalAsset = Medals[medal.id];
 
-  // 메달 이미지 소스 결정
   const medalSource = isLocked
     ? ('off' in medalAsset ? medalAsset.off : null)
     : medalAsset.on;
 
   return (
     <View style={styles.medalCard}>
-      {/* 메달 이미지 */}
       {medalSource ? (
         <View style={styles.medalImageWrapper}>
           <Image
@@ -231,7 +287,6 @@ function MedalCard({
         </View>
       )}
 
-      {/* 라벨 + 신기록 뱃지 */}
       <View style={styles.medalLabelRow}>
         <Text style={styles.medalLabel}>{medal.label}</Text>
         {medal.isNewRecord && (
@@ -241,12 +296,10 @@ function MedalCard({
         )}
       </View>
 
-      {/* 기록 */}
       <Text style={styles.medalTime}>
         {medal.time ?? '기록 없음'}
       </Text>
 
-      {/* 날짜 */}
       {medal.date ? (
         <Text style={styles.medalDate}>{medal.date}</Text>
       ) : null}
@@ -374,6 +427,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
     paddingBottom: 40,

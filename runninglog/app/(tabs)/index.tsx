@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,25 +9,31 @@ import { ThemedView } from '@/components/themed-view';
 import { BrandOrange, BrandOrangeLight, Colors, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
+import { getActivities } from '@/lib/api/activities';
+import { getStatisticsSummary } from '@/lib/api/statistics';
+import type { StatisticsSummary } from '@/types/activity';
 
-// ─── 목업 데이터 ────────────────────────────────────────────
-/** 표시 날짜 */
-const DISPLAY_DATE = '2025년 1월 17일';
+// ─── 주간 캘린더 생성 ──────────────────────────────────────────
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
-/** 주간 캘린더 (월~일) */
-const WEEK_DAYS = [
-  { label: '월', date: 12, hasRun: true },
-  { label: '화', date: 13, hasRun: true },
-  { label: '수', date: 14, hasRun: false },
-  { label: '목', date: 15, hasRun: false },
-  { label: '금', date: 16, hasRun: false },
-  { label: '토', date: 17, hasRun: true, isToday: true },
-  { label: '일', date: 18, hasRun: false },
-];
+function getWeekCalendar(runDays: Set<number>) {
+  const today = new Date();
+  const todayDate = today.getDate();
+  const dayOfWeek = today.getDay(); // 0=일
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-/** AI 페이스메이커 메시지 */
-const AI_MESSAGE =
-  '오늘 달리기 딱 좋은 날씨인데, 잠깐만 나가서 달리고 오는 건 어때?';
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + mondayOffset + i);
+    const date = d.getDate();
+    return {
+      label: WEEKDAY_LABELS[i],
+      date,
+      hasRun: runDays.has(date),
+      isToday: date === todayDate && d.getMonth() === today.getMonth(),
+    };
+  });
+}
 
 // ─── 컴포넌트 ────────────────────────────────────────────────
 
@@ -35,6 +42,45 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+
+  const [summary, setSummary] = useState<StatisticsSummary | null>(null);
+  const [runDays, setRunDays] = useState<Set<number>>(new Set());
+  const [aiMessage, setAiMessage] = useState(
+    '오늘 달리기 딱 좋은 날씨인데, 잠깐만 나가서 달리고 오는 건 어때?'
+  );
+
+  const today = new Date();
+  const displayDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [sumData, actData] = await Promise.all([
+        getStatisticsSummary(),
+        getActivities({ page: 1, page_size: 50 }),
+      ]);
+      setSummary(sumData);
+
+      // 이번 달 달린 날짜 추출
+      const thisMonth = today.getMonth();
+      const thisYear = today.getFullYear();
+      const days = new Set<number>();
+      for (const act of actData.results) {
+        const d = new Date(act.started_at);
+        if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
+          days.add(d.getDate());
+        }
+      }
+      setRunDays(days);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const weekDays = getWeekCalendar(runDays);
 
   /** RUN 버튼 누르면 액티브 런 화면으로 이동 */
   const handleRunPress = () => {
@@ -53,14 +99,14 @@ export default function HomeScreen() {
       >
         {/* 날짜 헤더 */}
         <Text style={[styles.dateText, { color: theme.text }]}>
-          {DISPLAY_DATE}
+          {displayDate}
         </Text>
 
         {/* 주간 스트릭 캘린더 */}
         <View style={[styles.weekCalendar, { backgroundColor: theme.background }]}>
           {/* 요일 라벨 행 */}
           <View style={styles.weekRow}>
-            {WEEK_DAYS.map((day) => (
+            {weekDays.map((day) => (
               <View key={day.label} style={styles.dayColumn}>
                 <Text style={[styles.dayLabel, { color: theme.textTertiary }]}>
                   {day.label}
@@ -70,20 +116,15 @@ export default function HomeScreen() {
           </View>
           {/* 날짜 원형 행 */}
           <View style={styles.weekRow}>
-            {WEEK_DAYS.map((day) => {
-              const hasRun = day.hasRun;
-              const isToday = !!day.isToday;
-
-              // 오늘이면서 달린 날: 오늘 스타일 우선 (today+run -> BrandOrange)
-              // 디자인 명세: 17(today+run) -> 오렌지 표시
+            {weekDays.map((day) => {
               let bgColor = '#E5E5E5';
               let textColor = '#737373';
 
-              if (hasRun) {
+              if (day.hasRun) {
                 bgColor = BrandOrange;
                 textColor = '#FFFFFF';
               }
-              if (isToday && !hasRun) {
+              if (day.isToday && !day.hasRun) {
                 bgColor = '#1A1A1A';
                 textColor = '#FFFFFF';
               }
@@ -103,21 +144,25 @@ export default function HomeScreen() {
 
         {/* 거리 표시 */}
         <View style={styles.distanceSection}>
-          <Text style={styles.distanceValue}>0</Text>
+          <Text style={styles.distanceValue}>
+            {summary ? summary.total_distance_km.toFixed(1) : '0'}
+          </Text>
           <Text style={[styles.distanceUnit, { color: theme.text }]}>km</Text>
         </View>
 
         {/* 타이머 표시 */}
         <Text style={[styles.timerText, { color: theme.text }]}>
-          00:00:00
+          {summary?.total_duration_display ?? '00:00:00'}
         </Text>
 
         {/* 페이스 & 심박수 */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.text }]}>-</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>
+              {summary?.average_pace_display ?? '-'}
+            </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-              현재 페이스
+              평균 페이스
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -131,7 +176,7 @@ export default function HomeScreen() {
         </View>
 
         {/* AI 페이스메이커 카드 */}
-        <AIPacemakerCard message={AI_MESSAGE} style={styles.aiCard} />
+        <AIPacemakerCard message={aiMessage} style={styles.aiCard} />
 
         {/* RUN 버튼 */}
         <View style={styles.runButtonContainer}>

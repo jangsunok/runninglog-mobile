@@ -21,6 +21,9 @@ export type User = {
   email: string;
   nickname?: string;
   profile_image_url?: string;
+  following_count?: number;
+  followers_count?: number;
+  theme_preference?: 'system' | 'light' | 'dark';
   is_active?: boolean;
   created_at?: string;
   last_login?: string;
@@ -79,8 +82,29 @@ export async function refreshTokens(refreshToken: string): Promise<RefreshRespon
 
 /** 현재 사용자 — GET /v1/mobile/auth/me/ (Bearer) */
 export async function getCurrentUser(): Promise<User> {
-  const data = await apiClient<{ user: User }>(`${BASE}/me/`, { auth: true });
-  return data.user;
+  return apiClient<User>(`${BASE}/me/`, { auth: true });
+}
+
+/** 사용자 정보 수정 — PATCH /v1/mobile/auth/me/ */
+export async function updateProfile(
+  payload: { nickname?: string; theme_preference?: string }
+): Promise<User> {
+  return apiClient<User>(`${BASE}/me/`, {
+    method: 'PATCH',
+    body: payload,
+    auth: true,
+  });
+}
+
+/** 계정 탈퇴 — POST /v1/mobile/auth/withdraw/ */
+export async function withdrawAccount(
+  refreshToken?: string
+): Promise<{ success: boolean; message: string; deactivated_at: string }> {
+  return apiClient(`${BASE}/withdraw/`, {
+    method: 'POST',
+    body: refreshToken ? { refresh_token: refreshToken } : {},
+    auth: true,
+  });
 }
 
 /** 로그아웃 — POST /v1/mobile/auth/logout/ (Bearer) {refresh_token} */

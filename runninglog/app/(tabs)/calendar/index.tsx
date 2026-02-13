@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,9 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BrandOrange, BrandOrangeLight, C, F } from '@/constants/theme';
+import { getActivities } from '@/lib/api/activities';
+import { getStatisticsSummary } from '@/lib/api/statistics';
+import type { ActivityListItem, StatisticsSummary } from '@/types/activity';
 
 // ─────────────────────────────────────────────
 // 뷰 모드 타입
@@ -17,22 +20,6 @@ type ViewMode = 'weekly' | 'monthly' | 'yearly';
 
 /** 연간 뷰 미니 캘린더 배경 (theme surface보다 밝음) */
 const COLOR_SURFACE_SUBTLE = '#f9fafb';
-
-// ─────────────────────────────────────────────
-// 목업 데이터: 달린 날짜 (2025년 1월)
-// ─────────────────────────────────────────────
-const MOCK_RUN_DATES: Record<string, number[]> = {
-  '2025-1': [1, 2, 3, 5, 6, 7, 8, 9, 10, 17, 18, 19, 20, 21, 22, 23, 27, 28, 29, 30],
-};
-
-// 목업 상세 기록
-const MOCK_RECORDS = [
-  { distance: 5.2, duration: '28:30', pace: "5'29\"", date: '1월 30일 01:51' },
-  { distance: 5.2, duration: '28:30', pace: "5'29\"", date: '1월 30일 01:51' },
-  { distance: 5.2, duration: '28:30', pace: "5'29\"", date: '1월 30일 01:51' },
-  { distance: 4.8, duration: '25:12', pace: "5'15\"", date: '1월 29일 07:30' },
-  { distance: 6.1, duration: '33:45', pace: "5'32\"", date: '1월 28일 18:20' },
-];
 
 // ─────────────────────────────────────────────
 // 유틸: 날짜 계산 도우미
@@ -47,10 +34,15 @@ function getFirstDayOfMonthMon(year: number, month: number): number {
   return day === 0 ? 6 : day - 1; // 0=월요일
 }
 
-/** 달린 날인지 확인 */
-function isRunDay(year: number, month: number, day: number): boolean {
+/** 달린 날인지 확인 — runDates 맵 기반 */
+function isRunDayCheck(
+  runDatesMap: Record<string, number[]>,
+  year: number,
+  month: number,
+  day: number
+): boolean {
   const key = `${year}-${month}`;
-  return MOCK_RUN_DATES[key]?.includes(day) ?? false;
+  return runDatesMap[key]?.includes(day) ?? false;
 }
 
 /** 오늘 날짜 판별 */
@@ -93,12 +85,41 @@ export default function CalendarScreen() {
 
   // 상태
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
-  const [currentYear, setCurrentYear] = useState(2025);
-  const [currentMonth, setCurrentMonth] = useState(1);
-  const [weekMonday, setWeekMonday] = useState(() => {
-    // 2025년 1월 3주차 월요일 (pen 디자인 기준)
-    return getWeekMonday(new Date(2025, 0, 13));
-  });
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
+  const [weekMonday, setWeekMonday] = useState(() => getWeekMonday(now));
+
+  // API 데이터
+  const [activities, setActivities] = useState<ActivityListItem[]>([]);
+  const [summary, setSummary] = useState<StatisticsSummary | null>(null);
+  const [runDates, setRunDates] = useState<Record<string, number[]>>({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [actData, sumData] = await Promise.all([
+          getActivities({ page: 1, page_size: 100 }),
+          getStatisticsSummary(),
+        ]);
+        setActivities(actData.results);
+        setSummary(sumData);
+
+        // 활동 날짜를 연-월별로 그룹핑
+        const dateMap: Record<string, number[]> = {};
+        for (const act of actData.results) {
+          const d = new Date(act.started_at);
+          const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+          const day = d.getDate();
+          if (!dateMap[key]) dateMap[key] = [];
+          if (!dateMap[key].includes(day)) dateMap[key].push(day);
+        }
+        setRunDates(dateMap);
+      } catch {
+        // 오류 시 빈 상태 유지
+      }
+    })();
+  }, []);
 
   // 월 네비게이션
   const goToPrevMonth = useCallback(() => {
@@ -321,7 +342,7 @@ export default function CalendarScreen() {
     rowIndex: number,
     colIndex: number
   ) => {
-    const hasRun = isCurrentMonth && isRunDay(currentYear, currentMonth, day);
+    const hasRun = isCurrentMonth && isRunDayCheck(runDates,currentYear, currentMonth, day);
     const todayFlag = isCurrentMonth && isToday(currentYear, currentMonth, day);
 
     return (
@@ -358,7 +379,7 @@ export default function CalendarScreen() {
       {renderWeekdayHeader()}
       <View style={styles.weekRow}>
         {weekDays.map((wd, i) => {
-          const hasRun = isRunDay(wd.year, wd.month, wd.day);
+          const hasRun = isRunDayCheck(runDates,wd.year, wd.month, wd.day);
           const todayFlag = isToday(wd.year, wd.month, wd.day);
           return (
             <View key={i} style={styles.dayCell}>
@@ -448,7 +469,7 @@ export default function CalendarScreen() {
                         if (day === null) {
                           return <View key={di} style={yrS.miniDayEmpty} />;
                         }
-                        const hasRun = isRunDay(currentYear, grid.month, day);
+                        const hasRun = isRunDayCheck(runDates,currentYear, grid.month, day);
                         return (
                           <View
                             key={di}
@@ -498,22 +519,24 @@ export default function CalendarScreen() {
 
       <View style={styles.bigDistanceRow}>
         <Text style={styles.bigDistanceLabel}>누적 거리</Text>
-        <Text style={styles.bigDistanceNumber}>5.23</Text>
+        <Text style={styles.bigDistanceNumber}>
+          {summary ? summary.total_distance_km.toFixed(2) : '0'}
+        </Text>
         <Text style={styles.bigDistanceUnit}>km</Text>
       </View>
 
       <View style={styles.statsCard}>
         <View style={styles.statsInnerRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statValue}>{summary?.total_activities ?? 0}</Text>
             <Text style={styles.statLabel}>횟수</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>5:12:13</Text>
+            <Text style={styles.statValue}>{summary?.total_duration_display ?? '0:00:00'}</Text>
             <Text style={styles.statLabel}>누적 시간</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>5'24"</Text>
+            <Text style={styles.statValue}>{summary?.average_pace_display ?? "-"}</Text>
             <Text style={styles.statLabel}>평균 페이스</Text>
           </View>
         </View>
@@ -524,22 +547,40 @@ export default function CalendarScreen() {
   // ─────────────────────────────────────────
   // 상세 기록 리스트
   // ─────────────────────────────────────────
+  // 현재 월의 활동만 필터링
+  const monthActivities = activities.filter((a) => {
+    const d = new Date(a.started_at);
+    return d.getFullYear() === currentYear && d.getMonth() + 1 === currentMonth;
+  });
+
   const renderDetailRecords = () => (
     <View style={styles.detailSection}>
       <Text style={styles.detailTitle}>상세 기록</Text>
-      {MOCK_RECORDS.map((record, index) => (
-        <View key={index}>
-          <View style={styles.recordItem}>
-            <Text style={styles.recordMain}>
-              {record.distance} km · {record.duration} · {record.pace}/km
-            </Text>
-            <Text style={styles.recordDate}>{record.date}</Text>
-          </View>
-          {index < MOCK_RECORDS.length - 1 && (
-            <View style={styles.recordDivider} />
-          )}
-        </View>
-      ))}
+      {monthActivities.length === 0 && (
+        <Text style={[styles.recordDate, { paddingVertical: 16, textAlign: 'center' }]}>
+          이 달에 기록이 없습니다
+        </Text>
+      )}
+      {monthActivities.map((record, index) => {
+        const d = new Date(record.started_at);
+        const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        return (
+          <TouchableOpacity
+            key={record.activity_id}
+            onPress={() => router.push(`/(tabs)/run/${record.activity_id}`)}
+          >
+            <View style={styles.recordItem}>
+              <Text style={styles.recordMain}>
+                {record.distance_km} km · {record.duration_display} · {record.average_pace_display}/km
+              </Text>
+              <Text style={styles.recordDate}>{dateStr}</Text>
+            </View>
+            {index < monthActivities.length - 1 && (
+              <View style={styles.recordDivider} />
+            )}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 
