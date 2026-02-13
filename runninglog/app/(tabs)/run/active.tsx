@@ -1,5 +1,12 @@
+/**
+ * Active Run - 실시간 달리기 기록 화면
+ * - 네이버 지도 + GPS 경로, 거리/시간/페이스
+ * - 위치 권한 온보딩 및 거절 시 설정 이동
+ * - 일시정지/재개/종료
+ */
+
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -11,38 +18,31 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActiveRunMapView } from '@/components/run/ActiveRunMapView';
+import { LocationPermissionDenied } from '@/components/run/LocationPermissionDenied';
+import { LocationPermissionOnboarding } from '@/components/run/LocationPermissionOnboarding';
 import { BrandOrange, Colors, HeartRed } from '@/constants/theme';
+import { useLocationPermission } from '@/hooks/useLocationPermission';
+import { formatPace } from '@/lib/utils/geo';
+import {
+  startLocationUpdates,
+  stopLocationUpdates,
+} from '@/services/location/LocationService';
+import { runStore } from '@/stores/runStore';
+import { useRunStore } from '@/stores/runStoreSelectors';
 
 let LinearGradient: any = null;
 try {
   LinearGradient = require('expo-linear-gradient').LinearGradient;
 } catch {
-  // expo-linear-gradient not installed — fallback handled in render
+  // fallback in render
 }
 
-// ── Mock Data ────────────────────────────────────────────────
-const MOCK_INITIAL_SECONDS = 28 * 60 + 45; // 28분 45초
-const MOCK_DISTANCE = 5.23;
-const MOCK_PACE = "5'29\"";
-const MOCK_HEART_RATE = 156;
-
-const SPLIT_DATA = {
-  km: 5,
-  currentPace: "5'18\"",
-  averagePace: "5'24\"",
-};
-
-// ── Colors (pen design variables) ────────────────────────────
 const backgroundDark = '#0D0D0D';
 const mapDark = '#1F2937';
-const surfaceDark = '#262626';
 const textDark = '#FAFAFA';
 const darkGray = '#374151';
-const lightGray = '#F3F4F6';
-const textSecondary = '#6B7280';
-const deepNavy = '#1E3A5F';
 
-// ── Utility ──────────────────────────────────────────────────
 function formatTime(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -50,79 +50,170 @@ function formatTime(totalSeconds: number): string {
   return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
 }
 
-// ── Component ────────────────────────────────────────────────
 export default function RunActiveScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const {
+    canRun,
+    foreground,
+    isRequesting,
+    requestForRun,
+    refresh: refreshPermission,
+    openAppSettings,
+  } = useLocationPermission();
 
-  const [seconds, setSeconds] = useState(MOCK_INITIAL_SECONDS);
-  const [isPaused, setIsPaused] = useState(false);
+  const {
+    status,
+    currentSession,
+    liveMetrics,
+    startRun,
+    pauseRun,
+    resumeRun,
+    finishRun,
+  } = useRunStore();
+
+  const [displaySeconds, setDisplaySeconds] = useState(0);
+  const [showSplit, setShowSplit] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [showSplit, setShowSplit] = useState(false);
-  const splitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 진입 시 권한 확인 후 러닝 시작
+  useFocusEffect(
+    useCallback(() => {
+      if (foreground === 'loading' || isRequesting) return;
+      if (!canRun) return; // 거절/미허용 시 UI에서 처리
 
-  // 1초 간격 타이머 카운트업
+      if (status === 'idle') {
+        startRun();
+        startLocationUpdates().catch((e) =>
+          console.warn('[active] startLocationUpdates', e)
+        );
+      }
+      return () => {};
+    }, [canRun, foreground, isRequesting, status, startRun])
+  );
+
+  // 앱 설정에서 돌아왔을 때 권한 재확인
+  useFocusEffect(
+    useCallback(() => {
+      refreshPermission();
+    }, [refreshPermission])
+  );
+
+  // 1초마다 경과 시간 갱신 (running/paused)
   useEffect(() => {
-    if (!isPaused) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((prev) => prev + 1);
-      }, 1000);
+    if (status !== 'running' && status !== 'paused' || !currentSession) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
     }
+    const update = () => {
+      if (!currentSession) return;
+      if (status === 'running') {
+        const elapsed =
+          (Date.now() - currentSession.startedAt - (currentSession.pausedDurationMs ?? 0)) / 1000;
+        setDisplaySeconds(Math.floor(elapsed));
+      } else {
+        setDisplaySeconds(Math.floor(currentSession.totalDurationMs / 1000));
+      }
+    };
+    update();
+    intervalRef.current = setInterval(update, 1000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isPaused]);
+  }, [status, currentSession?.id, currentSession?.startedAt, currentSession?.pausedDurationMs, currentSession?.totalDurationMs]);
 
-  // 3초 후 스플릿 알림 자동 표시
-  useEffect(() => {
-    splitTimerRef.current = setTimeout(() => {
-      setShowSplit(true);
-    }, 3000);
-    return () => {
-      if (splitTimerRef.current) clearTimeout(splitTimerRef.current);
-    };
-  }, []);
+  const handleOnboardingRequest = useCallback(async () => {
+    const granted = await requestForRun();
+    if (granted) {
+      startRun();
+      startLocationUpdates().catch((e) =>
+        console.warn('[active] startLocationUpdates', e)
+      );
+    }
+  }, [requestForRun, startRun]);
 
   const handlePauseToggle = useCallback(() => {
-    setIsPaused((prev) => !prev);
-  }, []);
+    if (status === 'running') {
+      pauseRun();
+      stopLocationUpdates();
+    } else if (status === 'paused') {
+      resumeRun();
+      startLocationUpdates().catch((e) =>
+        console.warn('[active] startLocationUpdates', e)
+      );
+    }
+  }, [status, pauseRun, resumeRun]);
 
   const handleStop = useCallback(() => {
-    setIsPaused(true);
-
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('러닝을 종료하시겠습니까?');
       if (confirmed) {
+        stopLocationUpdates();
+        finishRun();
         router.replace('/(tabs)/');
-      } else {
-        setIsPaused(false);
       }
     } else {
       Alert.alert('러닝 종료', '러닝을 종료하시겠습니까?', [
-        {
-          text: '취소',
-          style: 'cancel',
-          onPress: () => setIsPaused(false),
-        },
+        { text: '취소', style: 'cancel' },
         {
           text: '종료',
           style: 'destructive',
-          onPress: () => router.replace('/(tabs)/'),
+          onPress: () => {
+            stopLocationUpdates();
+            finishRun();
+            router.replace('/(tabs)/');
+          },
         },
       ]);
     }
-  }, [router]);
+  }, [router, finishRun]);
 
-  const handleDismissSplit = useCallback(() => {
-    setShowSplit(false);
-  }, []);
+  const handleDismissSplit = useCallback(() => setShowSplit(false), []);
+
+  // 권한 로딩
+  if (foreground === 'loading') {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>위치 권한 확인 중...</Text>
+      </View>
+    );
+  }
+
+  // 권한 거절/제한 → 설정 이동 유도
+  if (!canRun && (foreground === 'denied' || foreground === 'restricted')) {
+    return (
+      <View style={styles.container}>
+        <LocationPermissionDenied onOpenSettings={openAppSettings} />
+      </View>
+    );
+  }
+
+  // 아직 권한 요청 전 (undetermined) → 온보딩
+  if (!canRun && foreground === 'undetermined') {
+    return (
+      <View style={styles.container}>
+        <LocationPermissionOnboarding onRequest={handleOnboardingRequest} />
+      </View>
+    );
+  }
+
+  // 권한 있음 + 러닝 중/일시정지 → 메인 UI
+  const coordinates = currentSession?.coordinates ?? [];
+  const distanceKm = (liveMetrics.distanceMeters / 1000);
+  const paceStr = formatPace(liveMetrics.paceMinPerKm);
 
   return (
     <View style={styles.container}>
       {/* ── Map Section ─────────────────────────────── */}
       <View style={styles.mapSection}>
-        {/* Gradient overlay: transparent -> mapDark */}
+        <ActiveRunMapView
+          coordinates={coordinates}
+          isFollowingUser={status === 'running'}
+          style={styles.mapFill}
+        />
         {LinearGradient ? (
           <LinearGradient
             colors={['rgba(31,41,55,0)', mapDark]}
@@ -134,50 +225,50 @@ export default function RunActiveScreen() {
           <View style={styles.mapGradientFallback} />
         )}
 
-        {/* Route path visualization (curved arc) */}
-        <View style={styles.routePathContainer}>
-          <View style={styles.routePath} />
-        </View>
-
-        {/* Start marker */}
-        <View style={styles.startMarker} />
-
-        {/* Current position marker */}
-        <View style={styles.currentMarker} />
-
         {/* Status bar overlay */}
-        <View style={[styles.statusBar, { paddingTop: insets.top > 0 ? insets.top : 16 }]}>
-          <Text style={styles.statusTime}>9:41</Text>
+        <View style={[styles.statusBar, { paddingTop: Math.max(insets.top, 16) }]}>
+          <Text style={styles.statusTime}>
+            {new Date().toLocaleTimeString('ko-KR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}
+          </Text>
           <View style={styles.statusIcons}>
-            <MaterialIcons name="signal-cellular-alt" size={16} color="#FFFFFF" />
-            <MaterialIcons name="wifi" size={16} color="#FFFFFF" />
-            <MaterialIcons name="battery-full" size={16} color="#FFFFFF" />
+            {status === 'running' && (
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+            )}
+            <View style={styles.gpsBadge}>
+              <MaterialIcons name="gps-fixed" size={14} color="#FFFFFF" />
+              <Text style={styles.gpsText}>GPS</Text>
+            </View>
           </View>
         </View>
 
-        {/* Split Notification Card */}
+        {/* Split Notification (예시: 1km 구간 시 연출 가능) */}
         {showSplit && (
           <View style={styles.splitCard}>
-            {/* Header */}
             <View style={styles.splitHeader}>
               <View style={styles.splitTitle}>
                 <View style={styles.splitBadge}>
-                  <Text style={styles.splitBadgeText}>{SPLIT_DATA.km} km</Text>
+                  <Text style={styles.splitBadgeText}>1 km</Text>
                 </View>
                 <Text style={styles.splitTitleText}>스플릿 완료!</Text>
               </View>
               <Pressable onPress={handleDismissSplit} hitSlop={12}>
-                <MaterialIcons name="close" size={20} color={textSecondary} />
+                <MaterialIcons name="close" size={20} color="#6B7280" />
               </Pressable>
             </View>
-            {/* Stats */}
             <View style={styles.splitMetrics}>
               <View style={styles.splitMetricItem}>
-                <Text style={styles.splitPaceValue}>{SPLIT_DATA.currentPace}</Text>
+                <Text style={styles.splitPaceValue}>{paceStr}</Text>
                 <Text style={styles.splitPaceLabel}>이번 구간 페이스</Text>
               </View>
               <View style={styles.splitMetricItem}>
-                <Text style={styles.splitAvgValue}>{SPLIT_DATA.averagePace}</Text>
+                <Text style={styles.splitAvgValue}>{paceStr}</Text>
                 <Text style={styles.splitPaceLabel}>평균 페이스</Text>
               </View>
             </View>
@@ -187,25 +278,20 @@ export default function RunActiveScreen() {
 
       {/* ── Metrics Section ─────────────────────────── */}
       <View style={styles.metricsSection}>
-        {/* Distance */}
         <View style={styles.mainMetrics}>
-          <Text style={styles.distanceValue}>{MOCK_DISTANCE.toFixed(2)}</Text>
+          <Text style={styles.distanceValue}>{distanceKm.toFixed(2)}</Text>
           <Text style={styles.distanceLabel}>km</Text>
         </View>
-
-        {/* Timer */}
-        <Text style={styles.timerText}>{formatTime(seconds)}</Text>
-
-        {/* Pace & Heart Rate */}
+        <Text style={styles.timerText}>{formatTime(displaySeconds)}</Text>
         <View style={styles.secondaryMetrics}>
           <View style={styles.metricItem}>
-            <Text style={styles.metricValue}>{MOCK_PACE}</Text>
-            <Text style={styles.metricLabel}>현재 페이스</Text>
+            <Text style={styles.metricValue}>{paceStr}</Text>
+            <Text style={styles.metricLabel}>페이스</Text>
           </View>
           <View style={styles.metricItem}>
             <View style={styles.heartValueRow}>
               <MaterialIcons name="favorite" size={20} color={HeartRed} />
-              <Text style={styles.metricValue}> {MOCK_HEART_RATE}</Text>
+              <Text style={styles.metricValue}> --</Text>
             </View>
             <Text style={styles.metricLabel}>심박수 bpm</Text>
           </View>
@@ -214,7 +300,6 @@ export default function RunActiveScreen() {
 
       {/* ── Button Section ──────────────────────────── */}
       <View style={[styles.buttonSection, { paddingBottom: Math.max(insets.bottom, 48) }]}>
-        {/* Pause / Resume */}
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
@@ -224,16 +309,14 @@ export default function RunActiveScreen() {
           onPress={handlePauseToggle}
         >
           <MaterialIcons
-            name={isPaused ? 'play-arrow' : 'pause'}
+            name={status === 'paused' ? 'play-arrow' : 'pause'}
             size={24}
             color="#FFFFFF"
           />
           <Text style={styles.actionButtonText}>
-            {isPaused ? '재개' : '일시정지'}
+            {status === 'paused' ? '재개' : '일시중단'}
           </Text>
         </Pressable>
-
-        {/* Stop */}
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
@@ -250,71 +333,39 @@ export default function RunActiveScreen() {
   );
 }
 
-// ── Styles ───────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: backgroundDark,
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: textDark,
+    fontSize: 16,
+  },
 
-  /* ── Map Section ──────────────────────────── */
   mapSection: {
     height: 320,
     backgroundColor: mapDark,
     position: 'relative',
     overflow: 'hidden',
   },
+  mapFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
   mapGradient: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
+    pointerEvents: 'none',
   },
   mapGradientFallback: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
     backgroundColor: 'rgba(31,41,55,0.4)',
-  },
-  routePathContainer: {
-    position: 'absolute',
-    left: 40,
-    top: 80,
-    width: 310,
-    height: 180,
-    zIndex: 2,
-  },
-  routePath: {
-    width: 200,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 4,
-    borderColor: BrandOrange,
-    borderTopColor: 'transparent',
-    borderLeftColor: 'transparent',
-    transform: [{ rotate: '30deg' }],
-    position: 'absolute',
-    right: 20,
-    top: 0,
-  },
-  startMarker: {
-    position: 'absolute',
-    left: 36,
-    top: 236,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: BrandOrange,
-    zIndex: 3,
-  },
-  currentMarker: {
-    position: 'absolute',
-    right: 30,
-    top: 136,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: BrandOrange,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 3,
+    pointerEvents: 'none',
   },
   statusBar: {
     position: 'absolute',
@@ -325,6 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 4,
+    pointerEvents: 'none',
   },
   statusTime: {
     color: '#FFFFFF',
@@ -334,16 +386,49 @@ const styles = StyleSheet.create({
   statusIcons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  liveText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  gpsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,128,0,0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  gpsText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
 
-  /* ── Split Card ───────────────────────────── */
   splitCard: {
     position: 'absolute',
     left: 24,
     width: 342,
     top: 200,
-    backgroundColor: lightGray,
+    backgroundColor: Colors.dark.lightGray,
     borderRadius: 16,
     padding: 16,
     gap: 12,
@@ -390,17 +475,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   splitAvgValue: {
-    color: deepNavy,
+    color: '#1E3A5F',
     fontSize: 24,
     fontWeight: '700',
   },
   splitPaceLabel: {
-    color: textSecondary,
+    color: '#6B7280',
     fontSize: 12,
     fontWeight: '500',
   },
 
-  /* ── Metrics Section ──────────────────────── */
   metricsSection: {
     flex: 1,
     alignItems: 'center',
@@ -454,7 +538,6 @@ const styles = StyleSheet.create({
     color: textDark,
   },
 
-  /* ── Button Section ───────────────────────── */
   buttonSection: {
     flexDirection: 'row',
     gap: 16,
