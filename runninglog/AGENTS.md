@@ -161,3 +161,5 @@ When working on this project:
 2. **Understand before implementing**: Read the relevant docs section before writing code
 
 3. **Follow existing patterns**: Look at existing components and screens for patterns to follow
+
+4. **작업 완료 후 반드시 커밋**: 코드 변경 작업이 끝나면 항상 git commit을 수행할 것
