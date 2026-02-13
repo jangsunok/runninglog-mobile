@@ -8,12 +8,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BrandOrange, BrandOrangeLight, F } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight, C, F } from '@/constants/theme';
 
 // ─────────────────────────────────────────────
 // 뷰 모드 타입
 // ─────────────────────────────────────────────
 type ViewMode = 'weekly' | 'monthly' | 'yearly';
+
+/** 연간 뷰 미니 캘린더 배경 (theme surface보다 밝음) */
+const COLOR_SURFACE_SUBTLE = '#f9fafb';
 
 // ─────────────────────────────────────────────
 // 목업 데이터: 달린 날짜 (2025년 1월)
@@ -30,17 +33,6 @@ const MOCK_RECORDS = [
   { distance: 4.8, duration: '25:12', pace: "5'15\"", date: '1월 29일 07:30' },
   { distance: 6.1, duration: '33:45', pace: "5'32\"", date: '1월 28일 18:20' },
 ];
-
-// ─────────────────────────────────────────────
-// 색상 상수 (pen design variables)
-// ─────────────────────────────────────────────
-const COLOR_TEXT = '#0D0D0D';
-const COLOR_TEXT_SECONDARY = '#6B7280';
-const COLOR_TEXT_TERTIARY = '#9CA3AF';
-const COLOR_BACKGROUND = '#FFFFFF';
-const COLOR_LIGHT_GRAY = '#F3F4F6';
-const COLOR_BORDER = '#E5E5E5';
-const COLOR_SURFACE = '#f9fafb';
 
 // ─────────────────────────────────────────────
 // 유틸: 날짜 계산 도우미
@@ -297,11 +289,11 @@ export default function CalendarScreen() {
     return (
       <View style={styles.navigationRow}>
         <TouchableOpacity onPress={onPrev} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={24} color={COLOR_TEXT_SECONDARY} />
+          <Ionicons name="chevron-back" size={24} color={C.textSecondary} />
         </TouchableOpacity>
         <Text style={styles.navLabel}>{label}</Text>
         <TouchableOpacity onPress={onNext} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-forward" size={24} color={COLOR_TEXT_SECONDARY} />
+          <Ionicons name="chevron-forward" size={24} color={C.textSecondary} />
         </TouchableOpacity>
       </View>
     );
@@ -462,7 +454,7 @@ export default function CalendarScreen() {
                             key={di}
                             style={[
                               yrS.miniDay,
-                              { backgroundColor: hasRun ? BrandOrange : COLOR_SURFACE },
+                              { backgroundColor: hasRun ? BrandOrange : COLOR_SURFACE_SUBTLE },
                             ]}
                           >
                             <Text
@@ -499,7 +491,7 @@ export default function CalendarScreen() {
           onPress={() => router.push('/analyze')}
           activeOpacity={0.7}
         >
-          <Ionicons name="bar-chart-outline" size={16} color={COLOR_TEXT_SECONDARY} />
+          <Ionicons name="bar-chart-outline" size={16} color={C.textSecondary} />
           <Text style={styles.analyzeBtnText}>분석보기</Text>
         </TouchableOpacity>
       </View>
@@ -599,7 +591,7 @@ const wkS = StyleSheet.create({
     gap: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
-    backgroundColor: COLOR_BACKGROUND,
+    backgroundColor: C.background,
   },
   mainMetrics: {
     flexDirection: 'row',
@@ -614,12 +606,12 @@ const wkS = StyleSheet.create({
   distanceUnit: {
     fontSize: 24,
     fontFamily: F.inter500,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   timeValue: {
     fontSize: 48,
     fontFamily: F.mont700,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   secondaryRow: {
     flexDirection: 'row',
@@ -633,12 +625,12 @@ const wkS = StyleSheet.create({
   secondaryValue: {
     fontSize: 28,
     fontFamily: F.mont700,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   secondaryLabel: {
     fontSize: 14,
     fontFamily: F.inter500,
-    color: COLOR_TEXT,
+    color: C.text,
   },
 });
 
@@ -657,14 +649,14 @@ const yrS = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR_SURFACE,
+    borderColor: COLOR_SURFACE_SUBTLE,
     padding: 8,
     gap: 4,
   },
   monthTitle: {
     fontSize: 12,
     fontFamily: F.inter600,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   miniGrid: {
     gap: 2,
@@ -687,7 +679,7 @@ const yrS = StyleSheet.create({
   },
   miniDayText: {
     fontSize: 8,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   miniDayTextRun: {
     color: '#FFFFFF',
@@ -700,7 +692,7 @@ const yrS = StyleSheet.create({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLOR_BACKGROUND,
+    backgroundColor: C.background,
   },
   scrollView: {
     flex: 1,
@@ -721,12 +713,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontFamily: F.inter700,
-    color: COLOR_TEXT,
+    color: C.text,
   },
 
   // ─── 2. 캘린더 카드 ───
   calendarCard: {
-    backgroundColor: COLOR_BACKGROUND,
+    backgroundColor: C.background,
     borderRadius: 20,
     gap: 16,
     padding: 20,
@@ -736,7 +728,7 @@ const styles = StyleSheet.create({
   segmentContainer: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: COLOR_LIGHT_GRAY,
+    backgroundColor: C.lightGray,
     borderRadius: 24,
     height: 48,
     padding: 4,
@@ -759,7 +751,7 @@ const styles = StyleSheet.create({
     fontFamily: F.inter600,
   },
   segmentTextInactive: {
-    color: COLOR_TEXT_TERTIARY,
+    color: C.textTertiary,
     fontFamily: F.inter500,
   },
 
@@ -789,7 +781,7 @@ const styles = StyleSheet.create({
   weekdayText: {
     fontSize: 12,
     fontFamily: F.inter400,
-    color: COLOR_TEXT_TERTIARY,
+    color: C.textTertiary,
   },
 
   // ─── 날짜 행 ───
@@ -815,7 +807,7 @@ const styles = StyleSheet.create({
     backgroundColor: BrandOrange,
   },
   dayBadgeEmpty: {
-    backgroundColor: COLOR_LIGHT_GRAY,
+    backgroundColor: C.lightGray,
   },
   dayBadgeToday: {
     borderWidth: 2,
@@ -826,10 +818,10 @@ const styles = StyleSheet.create({
     fontFamily: F.inter500,
   },
   dayTextCurrent: {
-    color: COLOR_TEXT,
+    color: C.text,
   },
   dayTextOutside: {
-    color: COLOR_TEXT_TERTIARY,
+    color: C.textTertiary,
   },
   dayTextRun: {
     color: '#FFFFFF',
@@ -854,7 +846,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 18,
     fontFamily: F.inter600,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   analyzeButton: {
     flexDirection: 'row',
@@ -884,7 +876,7 @@ const styles = StyleSheet.create({
   bigDistanceLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: COLOR_TEXT_SECONDARY,
+    color: C.textSecondary,
   },
   bigDistanceNumber: {
     fontSize: 30,
@@ -894,12 +886,12 @@ const styles = StyleSheet.create({
   bigDistanceUnit: {
     fontSize: 24,
     fontWeight: '500',
-    color: COLOR_TEXT,
+    color: C.text,
   },
 
   // ─── 통계 통합 카드 ───
   statsCard: {
-    backgroundColor: COLOR_LIGHT_GRAY,
+    backgroundColor: C.lightGray,
     borderRadius: 16,
     padding: 16,
   },
@@ -914,12 +906,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontFamily: F.mont700,
-    color: COLOR_TEXT,
+    color: C.text,
   },
   statLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: COLOR_TEXT_SECONDARY,
+    color: C.textSecondary,
   },
 
   // ─── 4. 상세 기록 ───
@@ -930,7 +922,7 @@ const styles = StyleSheet.create({
   detailTitle: {
     fontSize: 18,
     fontFamily: F.inter600,
-    color: COLOR_TEXT,
+    color: C.text,
     marginBottom: 8,
   },
   recordItem: {
@@ -939,16 +931,16 @@ const styles = StyleSheet.create({
   recordMain: {
     fontSize: 16,
     fontFamily: F.inter600,
-    color: COLOR_TEXT,
+    color: C.text,
     marginBottom: 4,
   },
   recordDate: {
     fontSize: 13,
-    color: COLOR_TEXT_SECONDARY,
+    color: C.textSecondary,
   },
   recordDivider: {
     height: 1,
-    backgroundColor: COLOR_BORDER,
+    backgroundColor: C.border,
   },
 
   // ─── 하단 여백 ───

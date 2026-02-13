@@ -1,12 +1,13 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View, Pressable, Text, Image } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedView } from '@/components/themed-view';
 import { BrandOrange, BrandOrangeLight, Colors, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
 
 // ─── 목업 데이터 ────────────────────────────────────────────
 /** 표시 날짜 */
@@ -130,24 +131,7 @@ export default function HomeScreen() {
         </View>
 
         {/* AI 페이스메이커 카드 */}
-        <View
-          style={[
-            styles.aiCard,
-            { backgroundColor: theme.surface },
-          ]}
-        >
-          <Text style={styles.aiMessage}>
-            {AI_MESSAGE}
-          </Text>
-          <View style={styles.aiFooter}>
-            <Text style={[styles.aiLabel, { color: theme.textSecondary }]}>
-              당신의 페이스메이커
-            </Text>
-            <View style={styles.aiIconCircle}>
-              <Image source={require('@/assets/images/botIcon.png')} style={styles.aiIconImage} />
-            </View>
-          </View>
-        </View>
+        <AIPacemakerCard message={AI_MESSAGE} style={styles.aiCard} />
 
         {/* RUN 버튼 */}
         <View style={styles.runButtonContainer}>
@@ -290,42 +274,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  /* AI 페이스메이커 카드 (pen: goalCard) */
+  /* AI 페이스메이커 카드 */
   aiCard: {
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
     marginBottom: 32,
-  },
-  aiMessage: {
-    fontSize: 14,
-    fontFamily: F.inter400,
-    lineHeight: 21,
-    color: '#374151',
-  },
-  aiFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  aiLabel: {
-    fontSize: 13,
-    fontFamily: F.inter600,
-    color: '#374151',
-  },
-  aiIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: BrandOrange,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiIconImage: {
-    width: 16,
-    height: 16,
-    tintColor: '#FFFFFF',
   },
 
   /* RUN 버튼 */

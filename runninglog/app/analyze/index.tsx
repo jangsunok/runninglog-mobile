@@ -6,24 +6,12 @@ import {
   Pressable,
   SafeAreaView,
   Text,
-  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BrandOrange, F } from '@/constants/theme';
-
-// ─── 디자인 토큰 ──────────────────────────────────────────────
-const C = {
-  text: '#0D0D0D',
-  textSecondary: '#6B7280',
-  textTertiary: '#9CA3AF',
-  background: '#FFFFFF',
-  surface: '#F5F5F5',
-  border: '#E5E5E5',
-  darkGray: '#374151',
-  orange: BrandOrange,
-};
+import { BrandOrange, C, F } from '@/constants/theme';
+import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
 
 // ─── 목업 데이터 ──────────────────────────────────────────────
 const MONTH_LABELS = ['8월', '9월', '10월', '11월', '12월', '1월'];
@@ -109,7 +97,7 @@ function VerticalBarChart({
               </Text>
               {hl ? (
                 <LinearGradient
-                  colors={['#FFB74D', C.orange]}
+                  colors={['#FFB74D', BrandOrange]}
                   style={[chartS.bar, { height: Math.max(barH, 4) }]}
                 />
               ) : (
@@ -154,7 +142,7 @@ function HorizontalBarChart({
             <View style={hbarS.track}>
               {hl ? (
                 <LinearGradient
-                  colors={['#FFB74D', C.orange]}
+                  colors={['#FFB74D', BrandOrange]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[hbarS.bar, { width: barW as any }]}
@@ -163,7 +151,7 @@ function HorizontalBarChart({
                 <View style={[hbarS.bar, { width: barW as any, backgroundColor: C.border }]} />
               )}
             </View>
-            <Text style={[hbarS.val, hl && { color: C.orange }]}>
+            <Text style={[hbarS.val, hl && { color: BrandOrange }]}>
               {formatVal ? formatVal(v) : String(v)}
             </Text>
           </View>
@@ -202,18 +190,18 @@ function PaceChart({
             <View key={i} style={[chartS.barCol, { justifyContent: 'flex-end' }]}>
               <View style={{ height: height - 20, justifyContent: 'flex-start' }}>
                 <View style={{ marginTop: top }}>
-                  <Text style={[paceS.minLabel, hl && { color: C.orange }]}>
+                  <Text style={[paceS.minLabel, hl && { color: BrandOrange }]}>
                     {formatPace(d.min)}
                   </Text>
                   {hl ? (
                     <LinearGradient
-                      colors={['#FFB74D', C.orange]}
+                      colors={['#FFB74D', BrandOrange]}
                       style={[paceS.rangeBar, { height: Math.max(barH, 8) }]}
                     />
                   ) : (
                     <View style={[paceS.rangeBar, { height: Math.max(barH, 8), backgroundColor: C.border }]} />
                   )}
-                  <Text style={[paceS.maxLabel, hl && { color: C.orange }]}>
+                  <Text style={[paceS.maxLabel, hl && { color: BrandOrange }]}>
                     {formatPace(d.max)}
                   </Text>
                 </View>
@@ -368,19 +356,11 @@ export default function AnalyzeScreen() {
           {/* 7. 종합 분석 */}
           <View>
             <Text style={s.sectionTitle}>종합 분석</Text>
-            <View style={s.aiCard}>
-              <Text style={s.aiCardTitle}>{OVERALL_TITLE}</Text>
-              <Text style={s.aiCardBody}>{OVERALL_BODY}</Text>
-              <View style={s.aiFooter}>
-                <Text style={s.aiFooterLabel}>당신의 페이스메이커</Text>
-                <View style={s.aiAvatarCircle}>
-                  <Image
-                    source={require('@/assets/images/botIcon.png')}
-                    style={s.aiAvatarIcon}
-                  />
-                </View>
-              </View>
-            </View>
+            <AIPacemakerCard
+              title={OVERALL_TITLE}
+              message={OVERALL_BODY}
+              style={{ marginTop: 8 }}
+            />
           </View>
 
           {/* 8. 피드백 */}
@@ -396,9 +376,9 @@ export default function AnalyzeScreen() {
                 <MaterialIcons
                   name="thumb-up"
                   size={16}
-                  color={feedback === 'up' ? C.orange : '#6B7280'}
+                  color={feedback === 'up' ? BrandOrange : '#6B7280'}
                 />
-                <Text style={[s.feedbackBtnText, feedback === 'up' && { color: C.orange }]}>
+                <Text style={[s.feedbackBtnText, feedback === 'up' && { color: BrandOrange }]}>
                   최고예요
                 </Text>
               </Pressable>
@@ -409,9 +389,9 @@ export default function AnalyzeScreen() {
                 <MaterialIcons
                   name="thumb-down"
                   size={16}
-                  color={feedback === 'down' ? C.orange : '#6B7280'}
+                  color={feedback === 'down' ? BrandOrange : '#6B7280'}
                 />
-                <Text style={[s.feedbackBtnText, feedback === 'down' && { color: C.orange }]}>
+                <Text style={[s.feedbackBtnText, feedback === 'down' && { color: BrandOrange }]}>
                   별로예요
                 </Text>
               </Pressable>
@@ -472,42 +452,6 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontFamily: F.inter700, color: C.text, marginBottom: 4 },
   sectionComment: { fontSize: 14, fontFamily: F.inter400, color: C.text, lineHeight: 21, marginBottom: 12 },
 
-  // 종합 분석 카드
-  aiCard: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    marginTop: 8,
-  },
-  aiCardTitle: { fontSize: 14, fontFamily: F.inter600, color: C.darkGray, lineHeight: 21 },
-  aiCardBody: { fontSize: 14, fontFamily: F.inter400, color: C.darkGray, lineHeight: 21 },
-  aiFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  aiFooterLabel: { fontSize: 13, fontFamily: F.inter600, color: C.darkGray },
-  aiAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  aiAvatarCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.orange,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiAvatarIcon: {
-    width: 16,
-    height: 16,
-    tintColor: '#FFFFFF',
-  },
-
   // 피드백
   feedbackCard: {
     borderRadius: 12,
@@ -531,7 +475,7 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     height: 32,
   },
-  feedbackBtnActive: { borderColor: C.orange, backgroundColor: 'rgba(255,111,0,0.06)' },
+  feedbackBtnActive: { borderColor: BrandOrange, backgroundColor: 'rgba(255,111,0,0.06)' },
   feedbackBtnText: { fontSize: 14, fontFamily: F.inter500, color: C.darkGray },
 });
 
@@ -551,7 +495,7 @@ const chartS = StyleSheet.create({
   barCol: { alignItems: 'center', flex: 1 },
   bar: { width: 28, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   barVal: { fontSize: 12, color: C.textTertiary, marginBottom: 4 },
-  barValHl: { color: C.orange, fontFamily: F.mont700 },
+  barValHl: { color: BrandOrange, fontFamily: F.mont700 },
   labelsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
   label: { fontSize: 12, color: C.textTertiary, flex: 1, textAlign: 'center' },
 });

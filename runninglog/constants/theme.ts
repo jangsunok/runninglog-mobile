@@ -71,6 +71,9 @@ export const F = {
   bebas: 'BebasNeue_400Regular',
 } as const;
 
+/** 라이트 테마 색상 축약 (pen 디자인 기준) */
+export const C = Colors.light;
+
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',
