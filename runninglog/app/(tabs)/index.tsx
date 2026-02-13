@@ -20,7 +20,7 @@ const WEEK_DAYS = [
   { label: '목', date: 15, hasRun: false },
   { label: '금', date: 16, hasRun: false },
   { label: '토', date: 17, hasRun: true, isToday: true },
-  { label: '일', date: 18, hasRun: true },
+  { label: '일', date: 18, hasRun: false },
 ];
 
 /** AI 페이스메이커 메시지 */
@@ -136,7 +136,7 @@ export default function HomeScreen() {
             { backgroundColor: theme.surface },
           ]}
         >
-          <Text style={[styles.aiMessage, { color: theme.text }]}>
+          <Text style={styles.aiMessage}>
             {AI_MESSAGE}
           </Text>
           <View style={styles.aiFooter}>
@@ -223,9 +223,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dateBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -248,14 +248,14 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
   },
   distanceUnit: {
-    fontSize: 28,
-    fontWeight: '600',
-    marginLeft: 4,
+    fontSize: 24,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 
   /* 타이머 */
   timerText: {
-    fontSize: 42,
+    fontSize: 48,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 20,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '700',
   },
   heartRateRow: {
@@ -293,13 +293,14 @@ const styles = StyleSheet.create({
   /* AI 페이스메이커 카드 */
   aiCard: {
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     marginBottom: 32,
   },
   aiMessage: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 21,
     marginBottom: 16,
+    color: '#374151',
   },
   aiFooter: {
     flexDirection: 'row',

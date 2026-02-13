@@ -198,11 +198,16 @@ export default function LoginScreen() {
                 pressed && styles.devButtonPressed,
               ]}
               onPress={async () => {
-                await login('dev-token', 'dev-refresh');
-                router.replace('/(tabs)');
+                try {
+                  const { access_token, refresh_token } = await loginWithEmail('test@runhigh.com', 'test1234');
+                  await login(access_token, refresh_token);
+                  router.replace('/(tabs)');
+                } catch (e) {
+                  showErrorToast(e instanceof Error ? e.message : '테스트 로그인 실패');
+                }
               }}
             >
-              <Text style={styles.devButtonText}>로그인 없이 둘러보기 (Dev)</Text>
+              <Text style={styles.devButtonText}>테스트 계정 로그인 (Dev)</Text>
             </Pressable>
           </>
         )}

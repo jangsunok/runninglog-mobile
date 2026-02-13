@@ -9,41 +9,39 @@ import {
   TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BrandOrange, AccentGreen } from '@/constants/theme';
+import { Image } from 'expo-image';
+import { Medals } from '@/constants/assets';
+import { BrandOrange } from '@/constants/theme';
 
 // ─── 목업 데이터 ───────────────────────────────────────────────
 const MOCK_ACHIEVEMENTS = [
   {
-    id: '5km',
+    id: '5km' as const,
     label: '5km',
-    medalText: '5KM',
     unlocked: true,
     isNewRecord: true,
     time: '15분 32초',
     date: '2025년 1월 31일 13:52',
   },
   {
-    id: '10km',
+    id: '10km' as const,
     label: '10km',
-    medalText: '10KM',
     unlocked: true,
     isNewRecord: false,
     time: '15분 32초',
     date: '2025년 1월 31일 19:32',
   },
   {
-    id: 'half',
+    id: 'half' as const,
     label: 'HALF',
-    medalText: 'HALF',
     unlocked: false,
     isNewRecord: false,
     time: null,
     date: null,
   },
   {
-    id: 'full',
+    id: 'full' as const,
     label: 'FULL',
-    medalText: 'FULL',
     unlocked: false,
     isNewRecord: false,
     time: null,
@@ -141,9 +139,10 @@ export default function TrainingScreen() {
                 />
               </View>
               <View style={styles.progressRow}>
-                <Text style={styles.progressText}>
-                  {goalCurrent} km / {goalTarget}km
-                </Text>
+                <View style={styles.progressTextRow}>
+                  <Text style={styles.progressValue}>{goalCurrent}</Text>
+                  <Text style={styles.progressUnit}>km / {goalTarget}km</Text>
+                </View>
                 <View style={styles.percentBadge}>
                   <Text style={styles.percentText}>{progressPercent}%</Text>
                 </View>
@@ -166,13 +165,13 @@ export default function TrainingScreen() {
           <View style={styles.achievementHeader}>
             <Text style={styles.sectionTitle}>{monthLabel} 업적</Text>
             <TouchableOpacity style={styles.pastButton}>
-              <MaterialIcons name="emoji-events" size={16} color="#0D0D0D" />
+              <MaterialIcons name="emoji-events" size={16} color="#6B7280" />
               <Text style={styles.pastButtonText}>지난 업적</Text>
             </TouchableOpacity>
           </View>
 
           <Text style={styles.achievementDesc}>
-            거리를 달성하면 메달이 활성화되며, 해당 월의 최고 기록이 표시됩니다.
+            {'거리를 달성하면 메달이 활성화되며,\n해당 월의 최고 기록이 표시돼요.'}
           </Text>
 
           {/* 메달 그리드 */}
@@ -203,19 +202,32 @@ function MedalCard({
   medal: (typeof MOCK_ACHIEVEMENTS)[number];
 }) {
   const isLocked = !medal.unlocked;
+  const medalAsset = Medals[medal.id];
+
+  // 메달 이미지 소스 결정
+  const medalSource = isLocked
+    ? ('off' in medalAsset ? medalAsset.off : null)
+    : medalAsset.on;
 
   return (
     <View style={styles.medalCard}>
-      {/* 메달 원형 */}
-      {isLocked ? (
-        <View style={styles.medalCircleLocked}>
-          <View style={styles.lockOverlay}>
-            <MaterialIcons name="lock" size={32} color="#9CA3AF" />
-          </View>
+      {/* 메달 이미지 */}
+      {medalSource ? (
+        <View style={styles.medalImageWrapper}>
+          <Image
+            source={medalSource}
+            style={styles.medalImage}
+            contentFit="contain"
+          />
+          {isLocked && (
+            <View style={styles.lockOverlay}>
+              <MaterialIcons name="lock" size={36} color="#6B7280" />
+            </View>
+          )}
         </View>
       ) : (
-        <View style={styles.medalCircleGold}>
-          <Text style={styles.medalCircleText}>{medal.medalText}</Text>
+        <View style={styles.medalFrameLocked}>
+          <MaterialIcons name="lock" size={36} color="#6B7280" />
         </View>
       )}
 
@@ -230,7 +242,7 @@ function MedalCard({
       </View>
 
       {/* 기록 */}
-      <Text style={[styles.medalTime, isLocked && styles.medalTimeLocked]}>
+      <Text style={styles.medalTime}>
         {medal.time ?? '기록 없음'}
       </Text>
 
@@ -371,8 +383,6 @@ const styles = StyleSheet.create({
   header: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   title: {
     fontSize: 28,
@@ -382,7 +392,7 @@ const styles = StyleSheet.create({
 
   // ── 섹션 제목 ──
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#0D0D0D',
   },
@@ -396,11 +406,9 @@ const styles = StyleSheet.create({
 
   // ── 목표 카드 (있을 때) ──
   goalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
   },
   goalTitle: {
     fontSize: 16,
@@ -414,40 +422,49 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
-  progressText: {
+  progressTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  progressValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: BrandOrange,
+  },
+  progressUnit: {
     fontSize: 14,
-    color: '#0D0D0D',
+    fontWeight: '500',
+    color: '#6B7280',
   },
   percentBadge: {
     backgroundColor: BrandOrange,
     borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
   },
   percentText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   progressBarBg: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#E5E5E5',
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: BrandOrange,
-    borderRadius: 4,
+    borderRadius: 3,
   },
 
   // ── 목표 카드 (없을 때) ──
   goalCardEmpty: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
     alignItems: 'center',
   },
   setGoalButton: {
@@ -479,19 +496,21 @@ const styles = StyleSheet.create({
     gap: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
     paddingHorizontal: 12,
     paddingVertical: 6,
+    height: 32,
   },
   pastButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#0D0D0D',
+    color: '#374151',
   },
   achievementDesc: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#6B7280',
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#0D0D0D',
   },
 
   // ── 메달 그리드 ──
@@ -510,38 +529,35 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
 
-  // ── 메달 원형 (금색 - 달성) ──
-  medalCircleGold: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: '#F5A66A',
+  // ── 메달 이미지 ──
+  medalImageWrapper: {
+    width: 131,
+    height: 171,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    // gradient-like 효과를 위한 border
-    borderWidth: 4,
-    borderColor: BrandOrange,
   },
-  medalCircleText: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-  },
-
-  // ── 메달 원형 (잠김) ──
-  medalCircleLocked: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: '#E5E5E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+  medalImage: {
+    width: 131,
+    height: 171,
   },
   lockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(227,227,227,0.45)',
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // ── 메달 프레임 (잠김 - off 이미지 없는 경우) ──
+  medalFrameLocked: {
+    width: 131,
+    height: 171,
+    borderRadius: 40,
+    backgroundColor: 'rgba(227,227,227,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
 
   medalLabelRow: {
@@ -551,32 +567,31 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   medalLabel: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#0D0D0D',
   },
   newRecordBadge: {
-    backgroundColor: AccentGreen,
-    borderRadius: 6,
-    paddingHorizontal: 6,
+    backgroundColor: BrandOrange,
+    borderRadius: 10,
+    paddingHorizontal: 8,
     paddingVertical: 2,
   },
   newRecordText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
   },
   medalTime: {
     fontSize: 14,
-    color: '#0D0D0D',
+    fontWeight: '600',
+    color: '#9CA3AF',
     marginBottom: 2,
   },
-  medalTimeLocked: {
-    color: '#6B7280',
-  },
   medalDate: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
 
   // ── 모달 ──

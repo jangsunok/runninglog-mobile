@@ -48,11 +48,11 @@ export default function TabLayout() {
       {/* Hidden tabs */}
       <Tabs.Screen
         name="run"
-        options={{ tabBarButton: () => null }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="consult"
-        options={{ tabBarButton: () => null }}
+        options={{ href: null }}
       />
     </Tabs>
   );

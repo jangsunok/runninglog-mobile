@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, BrandOrange } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight } from '@/constants/theme';
 
 // ─────────────────────────────────────────────
 // 뷰 모드 타입
@@ -32,13 +32,13 @@ const MOCK_RECORDS = [
 ];
 
 // ─────────────────────────────────────────────
-// 색상 상수
+// 색상 상수 (pen design variables)
 // ─────────────────────────────────────────────
 const COLOR_TEXT = '#0D0D0D';
 const COLOR_TEXT_SECONDARY = '#6B7280';
 const COLOR_TEXT_TERTIARY = '#9CA3AF';
 const COLOR_BACKGROUND = '#FFFFFF';
-const COLOR_SURFACE = '#F5F5F5';
+const COLOR_LIGHT_GRAY = '#F3F4F6';
 const COLOR_BORDER = '#E5E5E5';
 
 // ─────────────────────────────────────────────
@@ -48,9 +48,10 @@ function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-/** 해당 월 1일의 요일 (0=일요일) — 일요일 시작 캘린더 */
-function getFirstDayOfMonth(year: number, month: number): number {
-  return new Date(year, month - 1, 1).getDay();
+/** 해당 월 1일의 요일 (0=일요일) — 월요일 시작 캘린더 */
+function getFirstDayOfMonthMon(year: number, month: number): number {
+  const day = new Date(year, month - 1, 1).getDay(); // 0=일요일
+  return day === 0 ? 6 : day - 1; // 0=월요일
 }
 
 /** 달린 날인지 확인 */
@@ -65,8 +66,8 @@ function isToday(year: number, month: number, day: number): boolean {
   return now.getFullYear() === year && now.getMonth() + 1 === month && now.getDate() === day;
 }
 
-// 일요일 시작
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+// 월요일 시작 (pen 디자인 기준)
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
 // ═════════════════════════════════════════════
 // 메인 컴포넌트
@@ -98,9 +99,9 @@ export default function CalendarScreen() {
     }
   }, [currentMonth]);
 
-  // 월간 캘린더 그리드 데이터 (일요일 시작)
+  // 월간 캘린더 그리드 데이터 (월요일 시작)
   const monthGrid = useMemo(() => {
-    const firstDay = getFirstDayOfMonth(currentYear, currentMonth); // 0=일요일
+    const firstDay = getFirstDayOfMonthMon(currentYear, currentMonth);
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
     const prevDays = getDaysInMonth(
       currentMonth === 1 ? currentYear - 1 : currentYear,
@@ -148,7 +149,7 @@ export default function CalendarScreen() {
   }, [currentYear, currentMonth]);
 
   // ─────────────────────────────────────────
-  // 세그먼트 컨트롤
+  // 세그먼트 컨트롤 (pen: pill 스타일)
   // ─────────────────────────────────────────
   const renderSegmentControl = () => (
     <View style={styles.segmentContainer}>
@@ -188,11 +189,11 @@ export default function CalendarScreen() {
   const renderNavigation = () => (
     <View style={styles.navigationRow}>
       <TouchableOpacity onPress={goToPrevMonth} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Text style={styles.navArrow}>{'<'}</Text>
+        <Ionicons name="chevron-back" size={24} color={COLOR_TEXT_SECONDARY} />
       </TouchableOpacity>
       <Text style={styles.navLabel}>{`${currentYear}년 ${currentMonth}월`}</Text>
       <TouchableOpacity onPress={goToNextMonth} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Text style={styles.navArrow}>{'>'}</Text>
+        <Ionicons name="chevron-forward" size={24} color={COLOR_TEXT_SECONDARY} />
       </TouchableOpacity>
     </View>
   );
@@ -211,7 +212,7 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // 날짜 셀
+  // 날짜 셀 (pen: rounded square cornerRadius 12)
   // ─────────────────────────────────────────
   const renderDayCell = (
     day: number,
@@ -228,6 +229,7 @@ export default function CalendarScreen() {
           style={[
             styles.dayBadge,
             hasRun && styles.dayBadgeRun,
+            !hasRun && isCurrentMonth && !todayFlag && styles.dayBadgeEmpty,
             todayFlag && !hasRun && styles.dayBadgeToday,
           ]}
         >
@@ -264,37 +266,45 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // 전체 기록 섹션
+  // 전체 기록 섹션 (pen 디자인: 통합 카드)
   // ─────────────────────────────────────────
   const renderSummarySection = () => (
     <View style={styles.summarySection}>
-      {/* 전체 기록 타이틀 + 월 분석보기 */}
+      {/* 전체 기록 타이틀 + 분석보기 버튼 */}
       <View style={styles.summaryHeader}>
         <Text style={styles.summaryLabel}>전체 기록</Text>
-        <TouchableOpacity onPress={() => router.push('/analyze')} activeOpacity={0.7}>
-          <Text style={styles.analyzeLink}>월 분석보기</Text>
+        <TouchableOpacity
+          style={styles.analyzeButton}
+          onPress={() => router.push('/analyze')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="bar-chart-outline" size={16} color={COLOR_TEXT_SECONDARY} />
+          <Text style={styles.analyzeBtnText}>분석보기</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 큰 거리 */}
+      {/* 누적 거리 */}
       <View style={styles.bigDistanceRow}>
+        <Text style={styles.bigDistanceLabel}>누적 거리</Text>
         <Text style={styles.bigDistanceNumber}>5.23</Text>
         <Text style={styles.bigDistanceUnit}>km</Text>
       </View>
 
-      {/* 통계 카드 3개 */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>8</Text>
-          <Text style={styles.statLabel}>횟수</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>5:12:13</Text>
-          <Text style={styles.statLabel}>누적 시간</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>5'24"</Text>
-          <Text style={styles.statLabel}>평균 페이스</Text>
+      {/* 통계 통합 카드 */}
+      <View style={styles.statsCard}>
+        <View style={styles.statsInnerRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statLabel}>횟수</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>5:12:13</Text>
+            <Text style={styles.statLabel}>누적 시간</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>5'24"</Text>
+            <Text style={styles.statLabel}>평균 페이스</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -335,9 +345,6 @@ export default function CalendarScreen() {
         {/* 1. 헤더 */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>기록</Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Ionicons name="settings-outline" size={20} color={COLOR_TEXT} />
-          </TouchableOpacity>
         </View>
 
         {/* 2. 월간 스트릭 캘린더 카드 */}
@@ -361,7 +368,7 @@ export default function CalendarScreen() {
 }
 
 // ═════════════════════════════════════════════
-// 스타일
+// 스타일 (pen design aligned)
 // ═════════════════════════════════════════════
 const styles = StyleSheet.create({
   container: {
@@ -396,53 +403,51 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 16,
     padding: 20,
-    marginHorizontal: 0,
   },
 
-  // ─── 세그먼트 컨트롤 ───
+  // ─── 세그먼트 컨트롤 (pen: pill style) ───
   segmentContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
+    alignSelf: 'center',
+    backgroundColor: COLOR_LIGHT_GRAY,
+    borderRadius: 24,
+    height: 48,
+    padding: 4,
+    width: 320,
   },
   segmentButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 20,
   },
   segmentButtonActive: {
-    backgroundColor: BrandOrange,
+    backgroundColor: '#FFFFFF',
   },
   segmentText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
   },
   segmentTextActive: {
-    color: '#FFFFFF',
+    color: BrandOrangeLight,
+    fontWeight: '600',
   },
   segmentTextInactive: {
-    color: COLOR_TEXT_SECONDARY,
+    color: COLOR_TEXT_TERTIARY,
+    fontWeight: '500',
   },
 
   // ─── 월 네비게이션 ───
   navigationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  navArrow: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLOR_TEXT,
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    gap: 8,
+    height: 40,
   },
   navLabel: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLOR_TEXT,
+    color: '#1F2937',
   },
 
   // ─── 요일 헤더 ───
@@ -456,7 +461,7 @@ const styles = StyleSheet.create({
   },
   weekdayText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '400',
     color: COLOR_TEXT_TERTIARY,
   },
 
@@ -465,21 +470,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 
-  // ─── 날짜 셀 ───
+  // ─── 날짜 셀 (pen: rounded square) ───
   dayCell: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 2,
+    justifyContent: 'center',
+    height: 48,
   },
   dayBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayBadgeRun: {
     backgroundColor: BrandOrange,
+  },
+  dayBadgeEmpty: {
+    backgroundColor: COLOR_LIGHT_GRAY,
   },
   dayBadgeToday: {
     borderWidth: 2,
@@ -516,54 +525,73 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '600',
-    color: COLOR_TEXT_SECONDARY,
+    color: COLOR_TEXT,
   },
-  analyzeLink: {
+  analyzeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    height: 32,
+  },
+  analyzeBtnText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#3B82F6',
+    color: '#374151',
   },
 
-  // ─── 큰 거리 ───
+  // ─── 누적 거리 ───
   bigDistanceRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 16,
   },
+  bigDistanceLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLOR_TEXT_SECONDARY,
+  },
   bigDistanceNumber: {
-    fontSize: 48,
+    fontSize: 30,
     fontWeight: '800',
     color: BrandOrange,
   },
   bigDistanceUnit: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '500',
     color: COLOR_TEXT,
-    marginLeft: 4,
   },
 
-  // ─── 통계 카드 ───
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
+  // ─── 통계 통합 카드 ───
+  statsCard: {
+    backgroundColor: COLOR_LIGHT_GRAY,
+    borderRadius: 16,
+    padding: 16,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLOR_SURFACE,
-    borderRadius: 12,
-    padding: 12,
+  statsInnerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
     alignItems: 'center',
+    gap: 2,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
     color: COLOR_TEXT,
-    marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
+    fontWeight: '500',
     color: COLOR_TEXT_SECONDARY,
   },
 
@@ -573,7 +601,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   detailTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: COLOR_TEXT,
     marginBottom: 8,
