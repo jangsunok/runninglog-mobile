@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { ChevronLeft, Share2, Heart, TrendingUp, Mountain } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Polyline, Marker } from 'react-native-maps';
 import Svg, { Path, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient as ExpoGradient } from 'expo-linear-gradient';
+import { MapView, Polyline, Marker } from '@/components/map-view';
 
 import { getActivity } from '@/lib/api/activities';
 import type { ActivityDetail, ActivitySplit, ApiCoordinate } from '@/types/activity';
