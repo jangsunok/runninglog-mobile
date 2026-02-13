@@ -7,34 +7,34 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  useColorScheme,
 } from 'react-native';
-import { Colors, BrandOrange } from '@/constants/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { BrandOrange, AccentGreen } from '@/constants/theme';
 
 // ─── 목업 데이터 ───────────────────────────────────────────────
 const MOCK_ACHIEVEMENTS = [
   {
     id: '5km',
     label: '5km',
-    emoji: '\uD83E\uDD47',
+    medalText: '5KM',
     unlocked: true,
     isNewRecord: true,
-    time: '15\uBD84 32\uCD08',
-    date: '2026\uB144 1\uC6D4 31\uC77C 13:52',
+    time: '15분 32초',
+    date: '2025년 1월 31일 13:52',
   },
   {
     id: '10km',
     label: '10km',
-    emoji: '\uD83E\uDD47',
+    medalText: '10KM',
     unlocked: true,
     isNewRecord: false,
-    time: '15\uBD84 32\uCD08',
-    date: '2026\uB144 1\uC6D4 31\uC77C 13:52',
+    time: '15분 32초',
+    date: '2025년 1월 31일 19:32',
   },
   {
     id: 'half',
     label: 'HALF',
-    emoji: '\uD83E\uDD48',
+    medalText: 'HALF',
     unlocked: false,
     isNewRecord: false,
     time: null,
@@ -43,7 +43,7 @@ const MOCK_ACHIEVEMENTS = [
   {
     id: 'full',
     label: 'FULL',
-    emoji: null,
+    medalText: 'FULL',
     unlocked: false,
     isNewRecord: false,
     time: null,
@@ -54,46 +54,43 @@ const MOCK_ACHIEVEMENTS = [
 // ─── 목표 유형 세그먼트 ────────────────────────────────────────
 type GoalType = 'distance' | 'time' | 'count';
 
-const GOAL_SEGMENTS: { key: GoalType; icon: string; label: string }[] = [
-  { key: 'distance', icon: '\uD83C\uDFC3', label: '\uAC70\uB9AC' },
-  { key: 'time', icon: '\u23F1', label: '\uC2DC\uAC04' },
-  { key: 'count', icon: '#', label: '\uD69F\uC218' },
+const GOAL_SEGMENTS: { key: GoalType; icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
+  { key: 'distance', icon: 'route', label: '거리' },
+  { key: 'time', icon: 'schedule', label: '시간' },
+  { key: 'count', icon: 'tag', label: '횟수' },
 ];
 
 const UNIT_MAP: Record<GoalType, string> = {
   distance: 'km',
-  time: '\uC2DC\uAC04',
-  count: '\uD68C',
+  time: '시간',
+  count: '회',
 };
 
 const PLACEHOLDER_MAP: Record<GoalType, string> = {
-  distance: '\uBAA9\uD45C \uAC70\uB9AC\uB97C \uC785\uB825\uD574\uC8FC\uC138\uC694',
-  time: '\uBAA9\uD45C \uC2DC\uAC04\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694',
-  count: '\uBAA9\uD45C \uD69F\uC218\uB97C \uC785\uB825\uD574\uC8FC\uC138\uC694',
+  distance: '목표 거리를 입력해주세요',
+  time: '목표 시간을 입력해주세요',
+  count: '목표 횟수를 입력해주세요',
 };
 
 const LABEL_MAP: Record<GoalType, string> = {
-  distance: '\uBAA9\uD45C \uAC70\uB9AC',
-  time: '\uBAA9\uD45C \uC2DC\uAC04',
-  count: '\uBAA9\uD45C \uD69F\uC218',
+  distance: '목표 거리',
+  time: '목표 시간',
+  count: '목표 횟수',
 };
 
 // ─── 현재 월 표시 헬퍼 ─────────────────────────────────────────
 function getCurrentMonthLabel(): string {
   const month = new Date().getMonth() + 1;
-  return `${month}\uC6D4\uC758`;
+  return `${month}월의`;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // 메인 화면
 // ═══════════════════════════════════════════════════════════════
 export default function TrainingScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
-
   // 목표 상태
   const [hasGoal, setHasGoal] = useState(true);
-  const [goalText, setGoalText] = useState('500KM \uB2EC\uB9AC\uAE30');
+  const [goalText, setGoalText] = useState('500KM 달리기');
   const [goalCurrent, setGoalCurrent] = useState(324);
   const [goalTarget, setGoalTarget] = useState(500);
 
@@ -106,7 +103,7 @@ export default function TrainingScreen() {
   // 목표 설정 완료 콜백
   const handleGoalSet = (type: GoalType, value: number) => {
     const unit = UNIT_MAP[type];
-    setGoalText(`${value}${unit.toUpperCase()} \uB2EC\uB9AC\uAE30`);
+    setGoalText(`${value}${unit.toUpperCase()} 달리기`);
     setGoalTarget(value);
     setGoalCurrent(0);
     setHasGoal(true);
@@ -114,95 +111,76 @@ export default function TrainingScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 타이틀 */}
-        <Text style={[styles.title, { color: colors.text }]}>{'\uD2B8\uB808\uC774\uB2DD'}</Text>
+        {/* ── 헤더 ── */}
+        <View style={styles.header}>
+          <Text style={styles.title}>트레이닝</Text>
+        </View>
 
         {/* ── 목표 섹션 ── */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {monthLabel} {'\uBAA9\uD45C'}
-        </Text>
+        <View style={styles.goalSection}>
+          <Text style={styles.sectionTitle}>{monthLabel} 목표</Text>
 
-        {hasGoal ? (
-          /* 목표가 있는 상태 */
-          <TouchableOpacity
-            style={[styles.goalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            activeOpacity={0.7}
-            onPress={() => setHasGoal(false)}
-          >
-            <Text style={[styles.goalTitle, { color: colors.text }]}>{goalText}</Text>
-            <View style={styles.progressRow}>
-              <Text style={styles.progressText}>
-                <Text style={{ color: BrandOrange, fontWeight: '700', fontSize: 18 }}>
-                  {goalCurrent}
-                </Text>
-                <Text style={{ color: colors.icon }}> km / {goalTarget}km</Text>
-              </Text>
-              <View style={styles.percentBadge}>
-                <Text style={styles.percentText}>{progressPercent}%</Text>
+          {hasGoal ? (
+            <TouchableOpacity
+              style={styles.goalCard}
+              activeOpacity={0.7}
+              onPress={() => setHasGoal(false)}
+            >
+              <Text style={styles.goalTitle}>{goalText}</Text>
+              <View style={styles.progressBarBg}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${Math.min(progressPercent, 100)}%` },
+                  ]}
+                />
               </View>
-            </View>
-            {/* 프로그레스 바 */}
-            <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${Math.min(progressPercent, 100)}%` },
-                ]}
-              />
-            </View>
-          </TouchableOpacity>
-        ) : (
-          /* 목표가 없는 상태 */
-          <View
-            style={[styles.goalCardEmpty, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <View style={styles.emptyGoalContent}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.emptyGoalTitle, { color: colors.text }]}>
-                  {'\uC544\uC9C1 \uC774\uB2EC\uC758 \uBAA9\uD45C\uAC00 \uC5C6\uC5B4\uC694'}
+              <View style={styles.progressRow}>
+                <Text style={styles.progressText}>
+                  {goalCurrent} km / {goalTarget}km
                 </Text>
-                <Text style={[styles.emptyGoalSub, { color: colors.icon }]}>
-                  {'\uBAA9\uD45C\uB97C \uC124\uC815\uD574 \uBCF4\uC138\uC694'}
-                </Text>
+                <View style={styles.percentBadge}>
+                  <Text style={styles.percentText}>{progressPercent}%</Text>
+                </View>
               </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.goalCardEmpty}>
               <TouchableOpacity
                 style={styles.setGoalButton}
                 onPress={() => setModalVisible(true)}
               >
-                <Text style={styles.setGoalButtonText}>{'\uBAA9\uD45C \uC124\uC815\uD558\uAE30'}</Text>
+                <Text style={styles.setGoalButtonText}>목표 설정하기</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
-
-        {/* ── 업적 섹션 ── */}
-        <View style={styles.achievementHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
-            {monthLabel} {'\uC5C5\uC801'}
-          </Text>
-          <TouchableOpacity
-            style={[styles.pastButton, { borderColor: colors.border }]}
-          >
-            <Text style={[styles.pastButtonText, { color: colors.text }]}>
-              {'\uD83C\uDFC5'} {'\uC9C0\uB09C \uC5C5\uC801'}
-            </Text>
-          </TouchableOpacity>
+          )}
         </View>
 
-        <Text style={[styles.achievementDesc, { color: colors.icon }]}>
-          {'\uAC70\uB9AC\uB97C \uB2EC\uC131\uD558\uBA74 \uBA54\uB2EC\uC774 \uD65C\uC131\uD654\uB418\uBA70,\n\uD574\uB2F9 \uC6D4\uC758 \uCD5C\uACE0 \uAE30\uB85D\uC774 \uD45C\uC2DC\uB3FC\uC694.'}
-        </Text>
+        {/* ── 업적 섹션 ── */}
+        <View style={styles.achievementSection}>
+          <View style={styles.achievementHeader}>
+            <Text style={styles.sectionTitle}>{monthLabel} 업적</Text>
+            <TouchableOpacity style={styles.pastButton}>
+              <MaterialIcons name="emoji-events" size={16} color="#0D0D0D" />
+              <Text style={styles.pastButtonText}>지난 업적</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* 메달 그리드 */}
-        <View style={styles.medalGrid}>
-          {MOCK_ACHIEVEMENTS.map((medal) => (
-            <MedalCard key={medal.id} medal={medal} colors={colors} />
-          ))}
+          <Text style={styles.achievementDesc}>
+            거리를 달성하면 메달이 활성화되며, 해당 월의 최고 기록이 표시됩니다.
+          </Text>
+
+          {/* 메달 그리드 */}
+          <View style={styles.medalGrid}>
+            {MOCK_ACHIEVEMENTS.map((medal) => (
+              <MedalCard key={medal.id} medal={medal} />
+            ))}
+          </View>
         </View>
       </ScrollView>
 
@@ -211,8 +189,6 @@ export default function TrainingScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={handleGoalSet}
-        colors={colors}
-        colorScheme={colorScheme}
       />
     </View>
   );
@@ -223,55 +199,45 @@ export default function TrainingScreen() {
 // ═══════════════════════════════════════════════════════════════
 function MedalCard({
   medal,
-  colors,
 }: {
   medal: (typeof MOCK_ACHIEVEMENTS)[number];
-  colors: (typeof Colors)['light'];
 }) {
   const isLocked = !medal.unlocked;
-  const isDisabled = !medal.unlocked && !medal.emoji;
 
   return (
-    <View style={[styles.medalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* 메달 원형 아이콘 */}
-      <View
-        style={[
-          styles.medalCircle,
-          isDisabled && styles.medalCircleDisabled,
-          isLocked && !isDisabled && styles.medalCircleLocked,
-        ]}
-      >
-        {medal.emoji ? (
-          <Text style={styles.medalEmoji}>{medal.emoji}</Text>
-        ) : (
-          <Text style={styles.medalEmojiDisabled}>{'\uD83D\uDD12'}</Text>
-        )}
-        {isLocked && medal.emoji && (
+    <View style={styles.medalCard}>
+      {/* 메달 원형 */}
+      {isLocked ? (
+        <View style={styles.medalCircleLocked}>
           <View style={styles.lockOverlay}>
-            <Text style={{ fontSize: 18 }}>{'\uD83D\uDD12'}</Text>
+            <MaterialIcons name="lock" size={32} color="#9CA3AF" />
           </View>
-        )}
-      </View>
+        </View>
+      ) : (
+        <View style={styles.medalCircleGold}>
+          <Text style={styles.medalCircleText}>{medal.medalText}</Text>
+        </View>
+      )}
 
       {/* 라벨 + 신기록 뱃지 */}
       <View style={styles.medalLabelRow}>
-        <Text style={[styles.medalLabel, { color: colors.text }]}>{medal.label}</Text>
+        <Text style={styles.medalLabel}>{medal.label}</Text>
         {medal.isNewRecord && (
           <View style={styles.newRecordBadge}>
-            <Text style={styles.newRecordText}>{'\uC2E0\uAE30\uB85D'}</Text>
+            <Text style={styles.newRecordText}>신기록</Text>
           </View>
         )}
       </View>
 
       {/* 기록 */}
-      <Text style={[styles.medalTime, { color: medal.time ? colors.text : colors.icon }]}>
-        {medal.time ?? '\uAE30\uB85D \uC5C6\uC74C'}
+      <Text style={[styles.medalTime, isLocked && styles.medalTimeLocked]}>
+        {medal.time ?? '기록 없음'}
       </Text>
 
       {/* 날짜 */}
-      {medal.date && (
-        <Text style={[styles.medalDate, { color: colors.icon }]}>{medal.date}</Text>
-      )}
+      {medal.date ? (
+        <Text style={styles.medalDate}>{medal.date}</Text>
+      ) : null}
     </View>
   );
 }
@@ -283,14 +249,10 @@ function GoalSettingModal({
   visible,
   onClose,
   onSubmit,
-  colors,
-  colorScheme,
 }: {
   visible: boolean;
   onClose: () => void;
   onSubmit: (type: GoalType, value: number) => void;
-  colors: (typeof Colors)['light'];
-  colorScheme: 'light' | 'dark';
 }) {
   const [selectedType, setSelectedType] = useState<GoalType>('distance');
   const [inputValue, setInputValue] = useState('');
@@ -317,14 +279,12 @@ function GoalSettingModal({
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+        <View style={styles.modalContent}>
           {/* 헤더 */}
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {'\uC774\uB2EC\uC758 \uBAA9\uD45C \uC124\uC815'}
-            </Text>
+            <Text style={styles.modalTitle}>이달의 목표 설정</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Text style={[styles.closeButtonText, { color: colors.icon }]}>{'\u2715'}</Text>
+              <MaterialIcons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
 
@@ -337,18 +297,23 @@ function GoalSettingModal({
                   key={seg.key}
                   style={[
                     styles.segmentButton,
-                    { borderColor: colors.border },
                     isActive && styles.segmentButtonActive,
                   ]}
                   onPress={() => setSelectedType(seg.key)}
                 >
+                  <MaterialIcons
+                    name={seg.icon}
+                    size={16}
+                    color={isActive ? '#FFFFFF' : '#6B7280'}
+                    style={styles.segmentIcon}
+                  />
                   <Text
                     style={[
                       styles.segmentText,
-                      { color: isActive ? '#FFFFFF' : colors.text },
+                      isActive && styles.segmentTextActive,
                     ]}
                   >
-                    {seg.icon} {seg.label}
+                    {seg.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -356,39 +321,32 @@ function GoalSettingModal({
           </View>
 
           {/* 입력 필드 */}
-          <Text style={[styles.inputLabel, { color: colors.text }]}>
-            {LABEL_MAP[selectedType]}
-          </Text>
-          <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <Text style={styles.inputLabel}>{LABEL_MAP[selectedType]}</Text>
+          <View style={styles.inputContainer}>
             <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder={`${PLACEHOLDER_MAP[selectedType]} ${UNIT_MAP[selectedType]}`}
-              placeholderTextColor={colors.icon}
+              style={styles.input}
+              placeholder={PLACEHOLDER_MAP[selectedType]}
+              placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
               value={inputValue}
               onChangeText={setInputValue}
-              textAlign="right"
             />
-            {inputValue.length > 0 && (
-              <Text style={[styles.inputUnit, { color: colors.text }]}>
-                {UNIT_MAP[selectedType]}
-              </Text>
-            )}
+            <Text style={styles.inputUnit}>{UNIT_MAP[selectedType]}</Text>
           </View>
 
           {/* 하단 버튼 */}
           <View style={styles.modalButtonRow}>
             <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton, { backgroundColor: colorScheme === 'dark' ? colors.surface : '#F0F0F0' }]}
+              style={[styles.modalButton, styles.cancelButton]}
               onPress={handleClose}
             >
-              <Text style={[styles.cancelButtonText, { color: colors.text }]}>{'\uCDE8\uC18C'}</Text>
+              <Text style={styles.cancelButtonText}>취소</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.submitButton]}
               onPress={handleSubmit}
             >
-              <Text style={styles.submitButtonText}>{'\uC124\uC815\uD558\uAE30'}</Text>
+              <Text style={styles.submitButtonText}>설정하기</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -403,53 +361,68 @@ function GoalSettingModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    padding: 20,
-    paddingTop: 60,
     paddingBottom: 40,
   },
 
-  // ── 타이틀 ──
+  // ── 헤더 ──
+  header: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 24,
+    fontWeight: '700',
+    color: '#0D0D0D',
   },
 
   // ── 섹션 제목 ──
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0D0D0D',
+  },
+
+  // ── 목표 섹션 ──
+  goalSection: {
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
 
   // ── 목표 카드 (있을 때) ──
   goalCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 28,
     borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
   goalTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
+    color: '#0D0D0D',
+    marginBottom: 12,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginTop: 8,
   },
   progressText: {
     fontSize: 14,
+    color: '#0D0D0D',
   },
   percentBadge: {
     backgroundColor: BrandOrange,
     borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   percentText: {
     color: '#FFFFFF',
@@ -459,6 +432,7 @@ const styles = StyleSheet.create({
   progressBarBg: {
     height: 8,
     borderRadius: 4,
+    backgroundColor: '#E5E5E5',
     overflow: 'hidden',
   },
   progressBarFill: {
@@ -469,104 +443,107 @@ const styles = StyleSheet.create({
 
   // ── 목표 카드 (없을 때) ──
   goalCardEmpty: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 28,
     borderWidth: 1,
-  },
-  emptyGoalContent: {
-    flexDirection: 'row',
+    borderColor: '#E5E5E5',
     alignItems: 'center',
-  },
-  emptyGoalTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  emptyGoalSub: {
-    fontSize: 13,
   },
   setGoalButton: {
     backgroundColor: BrandOrange,
     borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   setGoalButtonText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
 
   // ── 업적 섹션 ──
+  achievementSection: {
+    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
   achievementHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   pastButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    gap: 4,
+    borderRadius: 12,
     borderWidth: 1,
+    borderColor: '#E5E5E5',
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   pastButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
+    color: '#0D0D0D',
   },
   achievementDesc: {
     fontSize: 13,
     lineHeight: 20,
-    marginBottom: 16,
+    color: '#6B7280',
   },
 
   // ── 메달 그리드 ──
   medalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
   },
 
   // ── 메달 카드 ──
   medalCard: {
-    width: '48%',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
+    width: '47%',
     flexGrow: 1,
     flexBasis: '45%',
+    alignItems: 'center',
+    paddingVertical: 16,
   },
-  medalCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF8E1',
+
+  // ── 메달 원형 (금색 - 달성) ──
+  medalCircleGold: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: '#F5A66A',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    // gradient-like 효과를 위한 border
+    borderWidth: 4,
+    borderColor: BrandOrange,
   },
-  medalCircleDisabled: {
-    backgroundColor: '#E0E0E0',
+  medalCircleText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
   },
+
+  // ── 메달 원형 (잠김) ──
   medalCircleLocked: {
-    backgroundColor: '#F0F0F0',
-  },
-  medalEmoji: {
-    fontSize: 40,
-  },
-  medalEmojiDisabled: {
-    fontSize: 28,
-    opacity: 0.5,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: '#E5E5E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   lockOverlay: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
   medalLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,9 +553,10 @@ const styles = StyleSheet.create({
   medalLabel: {
     fontSize: 15,
     fontWeight: '700',
+    color: '#0D0D0D',
   },
   newRecordBadge: {
-    backgroundColor: BrandOrange,
+    backgroundColor: AccentGreen,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -590,10 +568,15 @@ const styles = StyleSheet.create({
   },
   medalTime: {
     fontSize: 14,
+    color: '#0D0D0D',
     marginBottom: 2,
+  },
+  medalTimeLocked: {
+    color: '#6B7280',
   },
   medalDate: {
     fontSize: 11,
+    color: '#6B7280',
   },
 
   // ── 모달 ──
@@ -603,8 +586,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
   },
@@ -617,12 +601,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#0D0D0D',
   },
   closeButton: {
     padding: 4,
-  },
-  closeButtonText: {
-    fontSize: 20,
   },
 
   // ── 세그먼트 ──
@@ -633,29 +615,42 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    alignItems: 'center',
+    borderColor: '#E5E5E5',
   },
   segmentButtonActive: {
-    backgroundColor: '#1E1E1E',
-    borderColor: '#1E1E1E',
+    backgroundColor: '#1F2937',
+    borderColor: '#1F2937',
+  },
+  segmentIcon: {
+    marginRight: 4,
   },
   segmentText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#6B7280',
+  },
+  segmentTextActive: {
+    color: '#FFFFFF',
   },
 
   // ── 입력 필드 ──
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#0D0D0D',
     marginBottom: 8,
   },
   inputContainer: {
     borderRadius: 10,
     borderWidth: 1,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#F5F5F5',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -664,13 +659,14 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    color: '#0D0D0D',
   },
   inputUnit: {
     fontSize: 16,
     fontWeight: '500',
-    marginLeft: 4,
+    color: '#6B7280',
+    marginLeft: 8,
   },
 
   // ── 모달 버튼 ──
@@ -684,10 +680,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  cancelButton: {},
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#F5F5F5',
+  },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#374151',
   },
   submitButton: {
     backgroundColor: BrandOrange,

@@ -1,11 +1,11 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BrandOrange, Colors } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight, Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ─── 목업 데이터 ────────────────────────────────────────────
@@ -23,21 +23,9 @@ const WEEK_DAYS = [
   { label: '일', date: 18, hasRun: true },
 ];
 
-/** 누적 거리 (km) */
-const TOTAL_DISTANCE = '5.23';
-
-/** 타이머 표시 */
-const TIMER_DISPLAY = '00:28:45';
-
-/** 현재 페이스 */
-const CURRENT_PACE = "5'29\"";
-
-/** 심박수 */
-const HEART_RATE = 156;
-
 /** AI 페이스메이커 메시지 */
 const AI_MESSAGE =
-  '와, 이번주에는 주 5일이나 달리기를 진행했네! 너무 고생 많았어. 달린 후 회복을 위한 스트레칭도 잊지 말고 꼭 해줘. 내일도 행복한 러닝하자';
+  '오늘 달리기 딱 좋은 날씨인데, 잠깐만 나가서 달리고 오는 건 어때?';
 
 // ─── 컴포넌트 ────────────────────────────────────────────────
 
@@ -45,8 +33,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
   const theme = Colors[colorScheme ?? 'light'];
 
   /** RUN 버튼 누르면 액티브 런 화면으로 이동 */
@@ -60,54 +46,51 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 },
+          { paddingTop: insets.top, paddingBottom: insets.bottom + 32 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 날짜 */}
+        {/* 날짜 헤더 */}
         <Text style={[styles.dateText, { color: theme.text }]}>
           {DISPLAY_DATE}
         </Text>
 
-        {/* 주간 캘린더 */}
-        <View style={styles.weekCalendar}>
-          {/* 요일 라벨 */}
+        {/* 주간 스트릭 캘린더 */}
+        <View style={[styles.weekCalendar, { backgroundColor: theme.background }]}>
+          {/* 요일 라벨 행 */}
           <View style={styles.weekRow}>
             {WEEK_DAYS.map((day) => (
               <View key={day.label} style={styles.dayColumn}>
-                <Text
-                  style={[
-                    styles.dayLabel,
-                    { color: isDark ? '#A3A3A3' : '#737373' },
-                  ]}
-                >
+                <Text style={[styles.dayLabel, { color: theme.textTertiary }]}>
                   {day.label}
                 </Text>
               </View>
             ))}
           </View>
-          {/* 날짜 숫자 */}
+          {/* 날짜 원형 행 */}
           <View style={styles.weekRow}>
             {WEEK_DAYS.map((day) => {
-              const isActive = day.hasRun;
-              const isToday = day.isToday;
+              const hasRun = day.hasRun;
+              const isToday = !!day.isToday;
+
+              // 오늘이면서 달린 날: 오늘 스타일 우선 (today+run -> BrandOrange)
+              // 디자인 명세: 17(today+run) -> 오렌지 표시
+              let bgColor = '#E5E5E5';
+              let textColor = '#737373';
+
+              if (hasRun) {
+                bgColor = BrandOrange;
+                textColor = '#FFFFFF';
+              }
+              if (isToday && !hasRun) {
+                bgColor = '#1A1A1A';
+                textColor = '#FFFFFF';
+              }
 
               return (
                 <View key={day.date} style={styles.dayColumn}>
-                  <View
-                    style={[
-                      styles.dateBadge,
-                      isActive && styles.dateBadgeActive,
-                      isToday && styles.dateBadgeToday,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.dateNumber,
-                        isActive && styles.dateNumberActive,
-                        isToday && styles.dateNumberToday,
-                      ]}
-                    >
+                  <View style={[styles.dateBadge, { backgroundColor: bgColor }]}>
+                    <Text style={[styles.dateNumber, { color: textColor }]}>
                       {day.date}
                     </Text>
                   </View>
@@ -117,46 +100,30 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 누적 거리 */}
+        {/* 거리 표시 */}
         <View style={styles.distanceSection}>
-          <Text style={styles.distanceValue}>{TOTAL_DISTANCE}</Text>
-          <Text style={[styles.distanceUnit, { color: theme.text }]}> km</Text>
+          <Text style={styles.distanceValue}>0</Text>
+          <Text style={[styles.distanceUnit, { color: theme.text }]}>km</Text>
         </View>
 
-        {/* 타이머 */}
+        {/* 타이머 표시 */}
         <Text style={[styles.timerText, { color: theme.text }]}>
-          {TIMER_DISPLAY}
+          00:00:00
         </Text>
 
         {/* 페이스 & 심박수 */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.text }]}>
-              {CURRENT_PACE}
-            </Text>
-            <Text
-              style={[
-                styles.statLabel,
-                { color: isDark ? '#A3A3A3' : '#737373' },
-              ]}
-            >
+            <Text style={[styles.statValue, { color: theme.text }]}>-</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               현재 페이스
             </Text>
           </View>
           <View style={styles.statItem}>
             <View style={styles.heartRateRow}>
               <Text style={styles.heartIcon}>♡</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>
-                {' '}
-                {HEART_RATE}
-              </Text>
             </View>
-            <Text
-              style={[
-                styles.statLabel,
-                { color: isDark ? '#A3A3A3' : '#737373' },
-              ]}
-            >
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               심박수 bpm
             </Text>
           </View>
@@ -166,34 +133,17 @@ export default function HomeScreen() {
         <View
           style={[
             styles.aiCard,
-            {
-              backgroundColor: isDark ? '#262626' : '#F5F5F5',
-            },
+            { backgroundColor: theme.surface },
           ]}
         >
-          <Text
-            style={[
-              styles.aiMessage,
-              { color: isDark ? '#D4D4D4' : '#404040' },
-            ]}
-          >
+          <Text style={[styles.aiMessage, { color: theme.text }]}>
             {AI_MESSAGE}
           </Text>
           <View style={styles.aiFooter}>
-            <Text
-              style={[
-                styles.aiLabel,
-                { color: isDark ? '#A3A3A3' : '#737373' },
-              ]}
-            >
+            <Text style={[styles.aiLabel, { color: theme.textSecondary }]}>
               당신의 페이스메이커
             </Text>
-            <View
-              style={[
-                styles.aiIconCircle,
-                { backgroundColor: BrandOrange },
-              ]}
-            >
+            <View style={styles.aiIconCircle}>
               <MaterialIcons name="smart-toy" size={18} color="#FFFFFF" />
             </View>
           </View>
@@ -203,19 +153,29 @@ export default function HomeScreen() {
         <View style={styles.runButtonContainer}>
           <Pressable
             style={({ pressed }) => [
-              styles.runButton,
+              styles.runButtonOuter,
               pressed && styles.runButtonPressed,
             ]}
             onPress={handleRunPress}
           >
-            <MaterialIcons
-              name="directions-run"
-              size={36}
-              color="#FFFFFF"
-            />
-            <Text style={styles.runButtonText}>RUN</Text>
+            <LinearGradient
+              colors={[BrandOrangeLight, BrandOrange]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.runButtonGradient}
+            >
+              <MaterialIcons
+                name="directions-run"
+                size={34}
+                color="#FFFFFF"
+              />
+              <Text style={styles.runButtonText}>RUN</Text>
+            </LinearGradient>
           </Pressable>
         </View>
+
+        {/* FAB 하단 간격 */}
+        <View style={styles.fabSpacer} />
       </ScrollView>
     </ThemedView>
   );
@@ -226,24 +186,28 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
 
-  /* 날짜 */
+  /* 날짜 헤더 */
   dateText: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
 
-  /* 주간 캘린더 */
+  /* 주간 스트릭 캘린더 */
   weekCalendar: {
+    borderRadius: 16,
     marginBottom: 32,
+    paddingVertical: 12,
   },
   weekRow: {
     flexDirection: 'row',
@@ -254,37 +218,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     marginBottom: 8,
   },
   dateBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E5E5E5',
-  },
-  dateBadgeActive: {
-    backgroundColor: BrandOrange,
-  },
-  dateBadgeToday: {
-    backgroundColor: '#1A1A1A',
   },
   dateNumber: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#737373',
-  },
-  dateNumberActive: {
-    color: '#FFFFFF',
-  },
-  dateNumberToday: {
-    color: '#FFFFFF',
   },
 
-  /* 누적 거리 */
+  /* 거리 표시 */
   distanceSection: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -300,6 +250,7 @@ const styles = StyleSheet.create({
   distanceUnit: {
     fontSize: 28,
     fontWeight: '600',
+    marginLeft: 4,
   },
 
   /* 타이머 */
@@ -330,7 +281,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heartIcon: {
-    fontSize: 22,
+    fontSize: 26,
+    fontWeight: '700',
     color: '#FF4D6A',
   },
   statLabel: {
@@ -338,7 +290,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  /* AI 카드 */
+  /* AI 페이스메이커 카드 */
   aiCard: {
     borderRadius: 16,
     padding: 20,
@@ -363,6 +315,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: BrandOrange,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -372,19 +325,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  runButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: BrandOrange,
-    alignItems: 'center',
-    justifyContent: 'center',
-    /* 그림자 */
-    shadowColor: BrandOrange,
+  runButtonOuter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    shadowColor: '#00000020',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 1,
     shadowRadius: 12,
     elevation: 8,
+  },
+  runButtonGradient: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   runButtonPressed: {
     opacity: 0.85,
@@ -392,8 +348,14 @@ const styles = StyleSheet.create({
   },
   runButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: 2,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    marginTop: -2,
+  },
+
+  /* FAB 하단 간격 */
+  fabSpacer: {
+    height: 80,
   },
 });

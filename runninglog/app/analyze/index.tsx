@@ -5,58 +5,56 @@ import {
   View,
   Pressable,
   SafeAreaView,
-  useColorScheme,
+  Text,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ThemedText } from '@/components/themed-text';
-import { Colors, BrandOrange } from '@/constants/theme';
+import { BrandOrange, AccentGreen, Colors } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
-// 목업 데이터
+// Colors (pen design tokens)
 // ---------------------------------------------------------------------------
 
-const MONTHS = ['8월', '9월', '10월', '11월', '12월', '1월'];
-const MONTH_OPTIONS = ['2025년 1월', '2024년 12월', '2024년 11월'];
-
-/** 섹션 1: 누적 거리 (km) */
-const DISTANCE_DATA = [87, 0, 133, 110, 150, 123];
-
-/** 섹션 2: 달리기 횟수 (회) */
-const RUN_COUNT_DATA = [3, 0, 7, 4, 10, 8];
-
-/** 섹션 3: 누적 시간 (임의 단위, 가로 바 차트용) */
-const TIME_DATA = [3, 0, 7, 4, 10, 8];
-
-/** 섹션 4: 소비 칼로리 */
-const CALORIE_DATA = [87, 0, 133, 110, 150, 123];
-
-/** 섹션 5: 페이스 – 최고/최저 (분 단위 소수) */
-const PACE_DATA = [
-  { min: 6.0, max: 7.0 },   // 8월
-  { min: 5.8, max: 6.8 },   // 9월
-  { min: 5.5, max: 6.5 },   // 10월
-  { min: 5.7, max: 6.4 },   // 11월
-  { min: 5.7, max: 6.37 },  // 12월 – 5'42" ~ 6'22"
-  { min: 5.7, max: 6.37 },  // 1월 – 5'42" ~ 6'22"
-];
-
-/** 섹션 6: 심박수 분포 (Zone 1~5 비율, %) */
-const HR_ZONE_DATA = [
-  { label: '1월', zones: [11, 40, 40, 4, 6] },
-  { label: '12월', zones: [11, 40, 40, 4, 6] },
-  { label: '11월', zones: [11, 40, 40, 4, 6] },
-  { label: '10월', zones: [11, 40, 40, 4, 6] },
-  { label: '9월', zones: [11, 40, 40, 4, 6] },
-];
-
-const ZONE_COLORS = ['#E0E0E0', '#66BB6A', '#FDD835', '#FF8A65', '#EF5350'];
-const ZONE_LABELS = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5'];
+const C = {
+  text: '#0D0D0D',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
+  background: '#FFFFFF',
+  surface: '#F5F5F5',
+  border: '#E5E5E5',
+  orange: BrandOrange,    // #FF6F00
+  green: AccentGreen,     // #5CB88F
+  barMuted: '#E5E5E5',
+};
 
 // ---------------------------------------------------------------------------
-// 유틸
+// Mock data (from pen design)
 // ---------------------------------------------------------------------------
 
-/** 숫자(분, 소수) → "5'42\"" 형태 문자열 */
+const PERIOD_LABELS = ['1주', '2주', '3주', '4주', '5주', '6주'];
+
+const DISTANCE_DATA = [32, 28, 45, 38, 52, 41];     // km
+const RUN_COUNT_DATA = [5, 4, 7, 6, 8, 5];          // 회
+const TIME_DATA = [3.2, 2.8, 4.5, 3.8, 5.2, 4.1];  // hours
+const CALORIE_DATA = [2100, 1800, 3200, 2600, 3500, 2800]; // kcal
+const PACE_DATA = [5.5, 5.4, 5.3, 5.2, 5.1, 5.0];  // min/km
+
+const AI_COMMENTS = {
+  distance: '지난달보다 15km 더 달렸어요! 지구력이 부쩍 좋아졌네요.',
+  runCount: '이번 달 총 22회! 거의 매일 달렸네요.',
+  time: '이번 달 총 12시간을 달렸습니다. 꾸준함이 최고의 재능이에요.',
+  calories: '총 15,000kcal 소모! 치킨 10마리 분량의 에너지를 태웠습니다.',
+  pace: '평균 페이스가 10초 빨라졌어요. 점점 속도에 탄력이 붙고 있어요!',
+};
+
+const OVERALL_SUMMARY =
+  '이번 달은 거리, 횟수, 시간 모두 골고루 성장한 균형 잡힌 한 달이었어요. ' +
+  '특히 페이스가 꾸준히 개선되고 있어 지구력과 속도 모두 발전하고 있습니다. ' +
+  '다음 달에는 주 1회 인터벌 훈련을 섞어보면 한 단계 더 도약할 수 있을 거예요!';
+
+// ---------------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------------
+
 function formatPace(val: number): string {
   const mins = Math.floor(val);
   const secs = Math.round((val - mins) * 60);
@@ -64,59 +62,58 @@ function formatPace(val: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// 세로 바 차트 컴포넌트
+// BarChart component (pure View-based)
 // ---------------------------------------------------------------------------
 
-interface VerticalBarChartProps {
+interface BarChartProps {
   data: number[];
   labels: string[];
-  currentIndex: number;       // 이번 달 인덱스 (오렌지 표시)
+  highlightIndex?: number;
   chartHeight?: number;
+  barWidth?: number;
+  formatValue?: (v: number) => string;
   barColor?: string;
-  activeColor?: string;
-  isDark: boolean;
+  highlightColor?: string;
 }
 
-function VerticalBarChart({
+function BarChart({
   data,
   labels,
-  currentIndex,
-  chartHeight = 200,
-  barColor,
-  activeColor = BrandOrange,
-  isDark,
-}: VerticalBarChartProps) {
+  highlightIndex = data.length - 1,
+  chartHeight = 160,
+  barWidth = 28,
+  formatValue,
+  barColor = C.barMuted,
+  highlightColor = C.orange,
+}: BarChartProps) {
   const maxValue = Math.max(...data, 1);
-  const defaultBarColor = isDark ? '#555' : '#D5D5D5';
-  const resolvedBarColor = barColor ?? defaultBarColor;
 
   return (
-    <View style={[
-      chartStyles.chartContainer,
-      { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface },
-    ]}>
-      <View style={[chartStyles.barsRow, { height: chartHeight }]}>
+    <View style={barChartStyles.container}>
+      {/* Bars */}
+      <View style={[barChartStyles.barsRow, { height: chartHeight }]}>
         {data.map((value, index) => {
-          const barHeight = maxValue > 0 ? (value / maxValue) * (chartHeight - 30) : 0;
-          const isActive = index === currentIndex;
-          const color = isActive ? activeColor : resolvedBarColor;
+          const barHeight = (value / maxValue) * (chartHeight - 24);
+          const isHighlighted = index === highlightIndex;
+          const color = isHighlighted ? highlightColor : barColor;
+          const displayValue = formatValue ? formatValue(value) : String(value);
+
           return (
-            <View key={index} style={chartStyles.barColumn}>
-              {/* 수치 라벨 */}
-              <ThemedText
+            <View key={index} style={barChartStyles.barColumn}>
+              <Text
                 style={[
-                  chartStyles.barValue,
-                  isActive && { color: BrandOrange, fontWeight: '700' },
+                  barChartStyles.barValue,
+                  isHighlighted && { color: C.orange, fontWeight: '700' },
                 ]}
               >
-                {value}
-              </ThemedText>
-              {/* 막대 */}
+                {displayValue}
+              </Text>
               <View
                 style={[
-                  chartStyles.bar,
+                  barChartStyles.bar,
                   {
-                    height: Math.max(barHeight, 2),
+                    height: Math.max(barHeight, 4),
+                    width: barWidth,
                     backgroundColor: color,
                   },
                 ]}
@@ -125,12 +122,13 @@ function VerticalBarChart({
           );
         })}
       </View>
-      {/* 월 라벨 */}
-      <View style={chartStyles.labelsRow}>
+
+      {/* X-axis labels */}
+      <View style={barChartStyles.labelsRow}>
         {labels.map((label, index) => (
-          <ThemedText key={index} style={chartStyles.monthLabel}>
+          <Text key={index} style={barChartStyles.label}>
             {label}
-          </ThemedText>
+          </Text>
         ))}
       </View>
     </View>
@@ -138,581 +136,228 @@ function VerticalBarChart({
 }
 
 // ---------------------------------------------------------------------------
-// 가로 바 차트 컴포넌트 (누적 시간용)
-// ---------------------------------------------------------------------------
-
-interface HorizontalBarChartProps {
-  data: number[];
-  labels: string[];
-  currentIndex: number;
-  isDark: boolean;
-}
-
-function HorizontalBarChart({
-  data,
-  labels,
-  currentIndex,
-  isDark,
-}: HorizontalBarChartProps) {
-  const maxValue = Math.max(...data, 1);
-  const defaultBarColor = isDark ? '#555' : '#D5D5D5';
-
-  // 위→아래: 최근→과거 (1월, 12월, 11월, …)
-  const reversed = [...data].reverse();
-  const reversedLabels = [...labels].reverse();
-  const reversedCurrentIndex = data.length - 1 - currentIndex;
-
-  return (
-    <View style={[
-      chartStyles.chartContainer,
-      { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface, paddingVertical: 16 },
-    ]}>
-      {reversed.map((value, index) => {
-        const barWidth = maxValue > 0 ? (value / maxValue) * 100 : 0;
-        const isActive = index === reversedCurrentIndex;
-        const color = isActive ? BrandOrange : defaultBarColor;
-        return (
-          <View key={index} style={hBarStyles.row}>
-            <ThemedText style={hBarStyles.label}>{reversedLabels[index]}</ThemedText>
-            <View style={hBarStyles.barTrack}>
-              <View
-                style={[
-                  hBarStyles.barFill,
-                  {
-                    width: `${Math.max(barWidth, 1)}%`,
-                    backgroundColor: color,
-                  },
-                ]}
-              />
-            </View>
-            <ThemedText
-              style={[
-                hBarStyles.value,
-                isActive && { color: BrandOrange, fontWeight: '700' },
-              ]}
-            >
-              {value}
-            </ThemedText>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 페이스 복합 차트 (바 + 라인)
-// ---------------------------------------------------------------------------
-
-interface PaceChartProps {
-  data: typeof PACE_DATA;
-  labels: string[];
-  currentIndex: number;
-  isDark: boolean;
-}
-
-function PaceChart({ data, labels, currentIndex, isDark }: PaceChartProps) {
-  const chartHeight = 180;
-  // 전체 범위를 구해서 비율 계산
-  const allMin = Math.min(...data.map(d => d.min));
-  const allMax = Math.max(...data.map(d => d.max));
-  const range = allMax - allMin || 1;
-
-  const defaultBarColor = isDark ? '#555' : '#D5D5D5';
-
-  // 포지션 계산: 낮은 페이스(빠른) = 상단, 높은 페이스(느린) = 하단
-  const toY = (val: number) => ((val - allMin) / range) * (chartHeight - 40);
-
-  return (
-    <View style={[
-      chartStyles.chartContainer,
-      { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface },
-    ]}>
-      <View style={[chartStyles.barsRow, { height: chartHeight, alignItems: 'flex-end' }]}>
-        {data.map((d, index) => {
-          const topY = toY(d.min);
-          const bottomY = toY(d.max);
-          const barH = Math.max(bottomY - topY, 6);
-          const marginBottom = (chartHeight - 40) - bottomY;
-          const isActive = index === currentIndex;
-          const color = isActive ? BrandOrange : defaultBarColor;
-
-          return (
-            <View key={index} style={[chartStyles.barColumn, { justifyContent: 'flex-end' }]}>
-              {/* 상단 페이스 값 (최고, 빠른) */}
-              {isActive && (
-                <ThemedText style={[paceStyles.paceLabel, { color: BrandOrange }]}>
-                  {formatPace(d.min)}
-                </ThemedText>
-              )}
-              <View
-                style={[
-                  chartStyles.bar,
-                  {
-                    height: barH,
-                    backgroundColor: color,
-                    marginBottom,
-                    borderRadius: 4,
-                  },
-                ]}
-              />
-              {/* 하단 페이스 값 (최저, 느린) */}
-              {isActive && (
-                <ThemedText style={[paceStyles.paceLabel, { color: BrandOrange }]}>
-                  {formatPace(d.max)}
-                </ThemedText>
-              )}
-            </View>
-          );
-        })}
-      </View>
-      {/* 라인 커넥터 (간단한 도트 + 라인) */}
-      <View style={paceStyles.lineOverlay} pointerEvents="none">
-        {data.map((d, index) => {
-          const avgPace = (d.min + d.max) / 2;
-          const y = toY(avgPace);
-          const leftPercent = ((index + 0.5) / data.length) * 100;
-          return (
-            <View
-              key={index}
-              style={[
-                paceStyles.dot,
-                {
-                  left: `${leftPercent}%`,
-                  bottom: (chartHeight - 40) - y + 10,
-                  backgroundColor: isDark ? '#999' : '#999',
-                },
-              ]}
-            />
-          );
-        })}
-      </View>
-      {/* 월 라벨 */}
-      <View style={chartStyles.labelsRow}>
-        {labels.map((label, index) => (
-          <ThemedText key={index} style={chartStyles.monthLabel}>
-            {label}
-          </ThemedText>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 심박수 분포 100% 스택 가로 바 차트
-// ---------------------------------------------------------------------------
-
-interface HeartRateZoneChartProps {
-  data: typeof HR_ZONE_DATA;
-  isDark: boolean;
-}
-
-function HeartRateZoneChart({ data, isDark }: HeartRateZoneChartProps) {
-  return (
-    <View style={[
-      chartStyles.chartContainer,
-      { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface, paddingVertical: 12 },
-    ]}>
-      {data.map((row, rowIndex) => (
-        <View key={rowIndex} style={zoneStyles.row}>
-          <ThemedText style={zoneStyles.label}>{row.label}</ThemedText>
-          <View style={zoneStyles.barTrack}>
-            {row.zones.map((pct, zi) => (
-              <View
-                key={zi}
-                style={[
-                  zoneStyles.segment,
-                  {
-                    flex: pct,
-                    backgroundColor: ZONE_COLORS[zi],
-                  },
-                ]}
-              >
-                {pct >= 8 && (
-                  <ThemedText
-                    lightColor="#333"
-                    darkColor="#333"
-                    style={zoneStyles.segmentText}
-                  >
-                    {pct}%
-                  </ThemedText>
-                )}
-              </View>
-            ))}
-          </View>
-        </View>
-      ))}
-      {/* Zone 범례 */}
-      <View style={zoneStyles.legendContainer}>
-        {ZONE_LABELS.map((label, i) => (
-          <View key={i} style={zoneStyles.legendItem}>
-            <View style={[zoneStyles.legendDot, { backgroundColor: ZONE_COLORS[i] }]} />
-            <ThemedText style={zoneStyles.legendText}>{label}</ThemedText>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 섹션 카드 래퍼
+// Section Card
 // ---------------------------------------------------------------------------
 
 interface SectionCardProps {
   title: string;
-  badge?: { label: string; isUp: boolean } | null;
-  collapsible?: boolean;
+  aiComment: string;
   children: React.ReactNode;
-  isDark: boolean;
 }
 
-function SectionCard({
-  title,
-  badge,
-  collapsible = false,
-  children,
-  isDark,
-}: SectionCardProps) {
-  const [collapsed, setCollapsed] = useState(false);
-
+function SectionCard({ title, aiComment, children }: SectionCardProps) {
   return (
-    <View style={sectionStyles.wrapper}>
-      {/* 타이틀 행 */}
-      <View style={sectionStyles.titleRow}>
-        <ThemedText type="subtitle" style={sectionStyles.sectionTitle}>
-          {title}
-        </ThemedText>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {badge && (
-            <ThemedText
-              style={[
-                sectionStyles.badge,
-                { color: badge.isUp ? '#2E7D32' : '#D32F2F' },
-              ]}
-            >
-              {badge.isUp ? '↗' : '↘'} {badge.label}
-            </ThemedText>
-          )}
-          {collapsible && (
-            <Pressable onPress={() => setCollapsed(!collapsed)} hitSlop={12}>
-              <ThemedText style={sectionStyles.collapseIcon}>
-                {collapsed ? '+' : '-'}
-              </ThemedText>
-            </Pressable>
-          )}
-        </View>
-      </View>
-      {/* 내용 */}
-      {!collapsed && children}
+    <View style={cardStyles.card}>
+      <Text style={cardStyles.title}>{title}</Text>
+      <Text style={cardStyles.aiComment}>{aiComment}</Text>
+      {children}
     </View>
   );
 }
 
-// ---------------------------------------------------------------------------
-// AI 코멘트 컴포넌트
-// ---------------------------------------------------------------------------
-
-function AIComment({ text }: { text: string }) {
-  return (
-    <ThemedText style={commentStyles.text}>{text}</ThemedText>
-  );
-}
-
 // ===========================================================================
-// 메인 화면
+// Main Screen
 // ===========================================================================
 
 export default function AnalyzeScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = isDark ? Colors.dark : Colors.light;
-
-  const [selectedMonth, setSelectedMonth] = useState(0);
-  const [feedback, setFeedback] = useState<'good' | 'bad' | null>(null);
-
-  /** 월 선택 토글 (목업) */
-  const cycleMonth = () => {
-    setSelectedMonth((prev) => (prev + 1) % MONTH_OPTIONS.length);
-  };
-
-  const currentIndex = MONTHS.length - 1; // 마지막(1월)이 이번 달
+  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={styles.safe}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ---- 헤더 ---- */}
+        {/* ---- Header ---- */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Pressable onPress={() => router.back()} hitSlop={12}>
-              <ThemedText style={styles.backButton}>{'←'}</ThemedText>
+              <Text style={styles.backArrow}>{'<'}</Text>
             </Pressable>
-            <ThemedText type="title" style={styles.pageTitle}>기록 분석</ThemedText>
+            <Text style={styles.headerTitle}>기록 분석</Text>
           </View>
-          <Pressable onPress={cycleMonth} hitSlop={8}>
-            <ThemedText style={[styles.monthSelector, { color: theme.text }]}>
-              {MONTH_OPTIONS[selectedMonth]} {'∨'}
-            </ThemedText>
-          </Pressable>
+          <Text style={styles.headerMonth}>2025년 1월</Text>
         </View>
 
-        {/* ---- 섹션 1: 누적 거리 ---- */}
-        <SectionCard
-          title="누적 거리"
-          badge={{ label: '15%', isUp: false }}
-          isDark={isDark}
-        >
-          <AIComment
-            text="1월의 총 달리기 거리는 123km에요! 이번 달은 회복에 집중하셨네요."
-          />
-          <VerticalBarChart
+        {/* ---- Section 1: 누적 거리 ---- */}
+        <SectionCard title="누적 거리" aiComment={AI_COMMENTS.distance}>
+          <BarChart
             data={DISTANCE_DATA}
-            labels={MONTHS}
-            currentIndex={currentIndex}
-            isDark={isDark}
+            labels={PERIOD_LABELS}
+            formatValue={(v) => `${v}km`}
           />
         </SectionCard>
 
-        {/* ---- 섹션 2: 달리기 횟수 ---- */}
-        <SectionCard
-          title="달리기 횟수"
-          collapsible
-          isDark={isDark}
-        >
-          <AIComment
-            text={'1월의 총 달리기 횟수는 8회에요!\n횟수는 유지되었지만, 한 번 뛸 때 더 멀리 달리셨어요.'}
-          />
-          <VerticalBarChart
+        {/* ---- Section 2: 달리기 횟수 ---- */}
+        <SectionCard title="달리기 횟수" aiComment={AI_COMMENTS.runCount}>
+          <BarChart
             data={RUN_COUNT_DATA}
-            labels={MONTHS}
-            currentIndex={currentIndex}
-            isDark={isDark}
+            labels={PERIOD_LABELS}
+            highlightColor={C.green}
+            formatValue={(v) => `${v}회`}
           />
         </SectionCard>
 
-        {/* ---- 섹션 3: 누적 시간 ---- */}
-        <SectionCard
-          title="누적 시간"
-          badge={{ label: '15%', isUp: true }}
-          isDark={isDark}
-        >
-          <AIComment
-            text={'1월의 총 누적 시간은 1시간 32분 53초에요!\n지구력이 부쩍 좋아졌네요.'}
-          />
-          <HorizontalBarChart
+        {/* ---- Section 3: 누적 시간 ---- */}
+        <SectionCard title="누적 시간" aiComment={AI_COMMENTS.time}>
+          <BarChart
             data={TIME_DATA}
-            labels={MONTHS}
-            currentIndex={currentIndex}
-            isDark={isDark}
+            labels={PERIOD_LABELS}
+            formatValue={(v) => `${v}h`}
           />
         </SectionCard>
 
-        {/* ---- 섹션 4: 소비 칼로리 ---- */}
-        <SectionCard
-          title="소비 칼로리"
-          isDark={isDark}
-        >
-          <AIComment
-            text={'1월의 총 소비 칼로리 1000kcal에요!\n치킨 두마리에 해당하는 칼로리에요~'}
-          />
-          <VerticalBarChart
+        {/* ---- Section 4: 소비 칼로리 ---- */}
+        <SectionCard title="소비 칼로리" aiComment={AI_COMMENTS.calories}>
+          <BarChart
             data={CALORIE_DATA}
-            labels={MONTHS}
-            currentIndex={currentIndex}
-            isDark={isDark}
+            labels={PERIOD_LABELS}
+            formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)}
           />
         </SectionCard>
 
-        {/* ---- 섹션 5: 페이스 ---- */}
-        <SectionCard
-          title="페이스"
-          badge={{ label: '15%', isUp: true }}
-          isDark={isDark}
-        >
-          <AIComment
-            text={'1월의 평균 페이스는 5\'42"에요.\n점점 속도에 탄력이 붙고 있어요'}
-          />
-          <PaceChart
+        {/* ---- Section 5: 페이스 ---- */}
+        <SectionCard title="페이스" aiComment={AI_COMMENTS.pace}>
+          <BarChart
             data={PACE_DATA}
-            labels={MONTHS}
-            currentIndex={currentIndex}
-            isDark={isDark}
+            labels={PERIOD_LABELS}
+            formatValue={(v) => formatPace(v)}
           />
         </SectionCard>
 
-        {/* ---- 섹션 6: 심박수 분포 ---- */}
-        <SectionCard
-          title="심박수 분포"
-          isDark={isDark}
-        >
-          <AIComment
-            text={'1월의 훈련 강도를 Zone 별로 분석했어요.\nZone 2-3 중심의 안정적인 유산소 훈련에 집중하셨네요.'}
-          />
-          <HeartRateZoneChart data={HR_ZONE_DATA} isDark={isDark} />
-        </SectionCard>
+        {/* ---- 종합 분석 ---- */}
+        <View style={overallStyles.card}>
+          <Text style={overallStyles.title}>종합 분석</Text>
+          <Text style={overallStyles.label}>AI 페이스메이커</Text>
+          <Text style={overallStyles.body}>{OVERALL_SUMMARY}</Text>
 
-        {/* ---- 섹션 7: 종합 분석 ---- */}
-        <View style={sectionStyles.wrapper}>
-          <ThemedText type="subtitle" style={sectionStyles.sectionTitle}>
-            종합 분석
-          </ThemedText>
-
-          {/* AI 페이스메이커 카드 */}
-          <View
-            style={[
-              summaryStyles.card,
-              { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface },
-            ]}
-          >
-            <ThemedText style={summaryStyles.cardTitle}>
-              이번 달은 '속도'보다 '지구력'에 집중하셨네요!
-            </ThemedText>
-            <ThemedText style={summaryStyles.cardBody}>
-              {'누적 거리는 20% 늘었지만, 평균 페이스는 유지되었습니다. 특히 심박수 ZONE 5 비중이 낮아진 것으로 보아, 몸에 무리 주지 않고 기초 체력을 탄탄히 다지는 아주 영리한 한 달을 보내셨습니다.\n지구력이 충분히 올라왔으니, 다음 달에는 주 1회 정도 인터벌 훈련을 섞어 페이스 향상에 도전해 보는 건 어떨까요?'}
-            </ThemedText>
-            <View style={summaryStyles.pacemakerRow}>
-              <ThemedText style={summaryStyles.pacemakerLabel}>당신의 페이스메이커</ThemedText>
-              <View style={summaryStyles.robotIcon}>
-                <ThemedText style={{ fontSize: 22 }}>{'🤖'}</ThemedText>
-              </View>
-            </View>
-          </View>
-
-          {/* 피드백 */}
-          <View style={summaryStyles.feedbackContainer}>
-            <ThemedText style={summaryStyles.feedbackPrompt}>
-              더 좋은 기록 분석을 위해 피드백을 남겨주세요!
-            </ThemedText>
-            <View style={summaryStyles.feedbackButtons}>
+          {/* Feedback */}
+          <View style={overallStyles.feedbackRow}>
+            <Text style={overallStyles.feedbackLabel}>
+              이 분석이 도움이 되었나요?
+            </Text>
+            <View style={overallStyles.feedbackButtons}>
               <Pressable
-                onPress={() => setFeedback(feedback === 'good' ? null : 'good')}
+                onPress={() => setFeedback(feedback === 'up' ? null : 'up')}
                 style={[
-                  summaryStyles.feedbackBtn,
-                  {
-                    borderColor: feedback === 'good' ? BrandOrange : (isDark ? Colors.dark.border : Colors.light.border),
-                    backgroundColor: feedback === 'good'
-                      ? (isDark ? 'rgba(255,111,0,0.15)' : 'rgba(255,111,0,0.08)')
-                      : 'transparent',
-                  },
+                  overallStyles.feedbackBtn,
+                  feedback === 'up' && overallStyles.feedbackBtnActive,
                 ]}
               >
-                <ThemedText style={summaryStyles.feedbackBtnText}>
-                  {'👍 최고예요'}
-                </ThemedText>
+                <Text
+                  style={[
+                    overallStyles.feedbackBtnText,
+                    feedback === 'up' && overallStyles.feedbackBtnTextActive,
+                  ]}
+                >
+                  👍
+                </Text>
               </Pressable>
               <Pressable
-                onPress={() => setFeedback(feedback === 'bad' ? null : 'bad')}
+                onPress={() => setFeedback(feedback === 'down' ? null : 'down')}
                 style={[
-                  summaryStyles.feedbackBtn,
-                  {
-                    borderColor: feedback === 'bad' ? BrandOrange : (isDark ? Colors.dark.border : Colors.light.border),
-                    backgroundColor: feedback === 'bad'
-                      ? (isDark ? 'rgba(255,111,0,0.15)' : 'rgba(255,111,0,0.08)')
-                      : 'transparent',
-                  },
+                  overallStyles.feedbackBtn,
+                  feedback === 'down' && overallStyles.feedbackBtnActive,
                 ]}
               >
-                <ThemedText style={summaryStyles.feedbackBtnText}>
-                  {'👎 별로예요'}
-                </ThemedText>
+                <Text
+                  style={[
+                    overallStyles.feedbackBtnText,
+                    feedback === 'down' && overallStyles.feedbackBtnTextActive,
+                  ]}
+                >
+                  👎
+                </Text>
               </Pressable>
             </View>
           </View>
         </View>
 
-        {/* 하단 여백 */}
-        <View style={{ height: 60 }} />
+        {/* Bottom spacing */}
+        <View style={{ height: 48 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 // ===========================================================================
-// 스타일
+// Styles
 // ===========================================================================
 
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+    backgroundColor: C.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingBottom: 32,
   },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  backButton: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  monthSelector: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
-
-/** 섹션 카드 공통 */
-const sectionStyles = StyleSheet.create({
-  wrapper: {
-    marginBottom: 32,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
+  backArrow: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '600',
+    color: C.text,
   },
-  badge: {
-    fontSize: 15,
-    fontWeight: '700',
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: C.text,
   },
-  collapseIcon: {
-    fontSize: 22,
-    fontWeight: '700',
-    paddingHorizontal: 4,
-  },
-});
-
-/** AI 코멘트 */
-const commentStyles = StyleSheet.create({
-  text: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 16,
-    opacity: 0.85,
+  headerMonth: {
+    fontSize: 14,
+    color: C.textSecondary,
   },
 });
 
-/** 세로 바 차트 */
-const chartStyles = StyleSheet.create({
-  chartContainer: {
+// Section card styles
+const cardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: C.background,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: 6,
+  },
+  aiComment: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontStyle: 'italic',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+});
+
+// Bar chart styles
+const barChartStyles = StyleSheet.create({
+  container: {
+    marginTop: 4,
   },
   barsRow: {
     flexDirection: 'row',
@@ -724,12 +369,15 @@ const chartStyles = StyleSheet.create({
     flex: 1,
   },
   bar: {
-    width: 40,
-    borderRadius: 4,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+    borderBottomLeftRadius: 2,
+    borderBottomRightRadius: 2,
   },
   barValue: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '500',
+    color: C.textTertiary,
     marginBottom: 4,
   },
   labelsRow: {
@@ -737,178 +385,79 @@ const chartStyles = StyleSheet.create({
     justifyContent: 'space-around',
     marginTop: 8,
   },
-  monthLabel: {
-    fontSize: 13,
-    opacity: 0.6,
+  label: {
+    fontSize: 12,
+    color: C.textTertiary,
     flex: 1,
     textAlign: 'center',
   },
 });
 
-/** 가로 바 차트 */
-const hBarStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 6,
-  },
-  label: {
-    width: 40,
-    fontSize: 13,
-    opacity: 0.6,
-  },
-  barTrack: {
-    flex: 1,
-    height: 28,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginHorizontal: 8,
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  value: {
-    fontSize: 13,
-    fontWeight: '600',
-    width: 30,
-    textAlign: 'right',
-  },
-});
-
-/** 페이스 차트 */
-const paceStyles = StyleSheet.create({
-  paceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginVertical: 2,
-  },
-  lineOverlay: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
-    bottom: 40,
-  },
-  dot: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: -3,
-  },
-});
-
-/** 심박수 Zone 차트 */
-const zoneStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 5,
-  },
-  label: {
-    width: 42,
-    fontSize: 13,
-    opacity: 0.6,
-  },
-  barTrack: {
-    flex: 1,
-    height: 32,
-    borderRadius: 4,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    marginLeft: 8,
-  },
-  segment: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  segmentText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 14,
-    gap: 12,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-  },
-  legendText: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-});
-
-/** 종합 분석 */
-const summaryStyles = StyleSheet.create({
+// Overall analysis card styles
+const overallStyles = StyleSheet.create({
   card: {
+    backgroundColor: C.background,
     borderRadius: 16,
     padding: 20,
+    marginHorizontal: 20,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: 4,
+  },
+  label: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  body: {
+    fontSize: 14,
+    color: C.text,
+    lineHeight: 22,
     marginBottom: 20,
   },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: '800',
+  feedbackRow: {
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  feedbackLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
     marginBottom: 12,
-    lineHeight: 24,
-  },
-  cardBody: {
-    fontSize: 14,
-    lineHeight: 22,
-    opacity: 0.85,
-    marginBottom: 16,
-  },
-  pacemakerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  pacemakerLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.7,
-  },
-  robotIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BrandOrange,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  feedbackContainer: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  feedbackPrompt: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 12,
-    textAlign: 'center',
   },
   feedbackButtons: {
     flexDirection: 'row',
     gap: 16,
   },
   feedbackBtn: {
-    borderWidth: 1.5,
+    width: 48,
+    height: 48,
     borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: C.surface,
+  },
+  feedbackBtnActive: {
+    borderColor: C.orange,
+    backgroundColor: 'rgba(255, 111, 0, 0.08)',
   },
   feedbackBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 20,
+  },
+  feedbackBtnTextActive: {
+    fontSize: 22,
   },
 });

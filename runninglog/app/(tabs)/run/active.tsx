@@ -11,37 +11,38 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandOrange } from '@/constants/theme';
+import { BrandOrange, Colors, HeartRed } from '@/constants/theme';
 
-// ─── 목업 데이터 ────────────────────────────────────────────
-/** 초기 경과 시간(초) — 목업용 28분 45초 */
-const MOCK_INITIAL_SECONDS = 28 * 60 + 45;
+let LinearGradient: any = null;
+try {
+  LinearGradient = require('expo-linear-gradient').LinearGradient;
+} catch {
+  // expo-linear-gradient not installed — fallback handled in render
+}
 
-/** 목업 거리(km) */
+// ── Mock Data ────────────────────────────────────────────────
+const MOCK_INITIAL_SECONDS = 28 * 60 + 45; // 28분 45초
 const MOCK_DISTANCE = 5.23;
-
-/** 목업 페이스 */
 const MOCK_PACE = "5'29\"";
-
-/** 목업 심박수 */
 const MOCK_HEART_RATE = 156;
 
-/** 스플릿 카드 데이터 */
 const SPLIT_DATA = {
   km: 5,
   currentPace: "5'18\"",
   averagePace: "5'24\"",
 };
 
-// ─── 다크 테마 색상 ─────────────────────────────────────────
-const DARK_BG = '#1A1A2E';
-const DARK_SURFACE = '#16213E';
-const DARK_CARD = '#2A2A40';
-const TEXT_PRIMARY = '#FFFFFF';
-const TEXT_SECONDARY = '#A3A3B8';
+// ── Colors (pen design variables) ────────────────────────────
+const backgroundDark = '#0D0D0D';
+const mapDark = '#1F2937';
+const surfaceDark = '#262626';
+const textDark = '#FAFAFA';
+const darkGray = '#374151';
+const lightGray = '#F3F4F6';
+const textSecondary = '#6B7280';
+const deepNavy = '#1E3A5F';
 
-// ─── 유틸리티 ────────────────────────────────────────────────
-/** 초를 HH:MM:SS 문자열로 변환 */
+// ── Utility ──────────────────────────────────────────────────
 function formatTime(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -49,18 +50,15 @@ function formatTime(totalSeconds: number): string {
   return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
 }
 
-// ─── 컴포넌트 ────────────────────────────────────────────────
-
+// ── Component ────────────────────────────────────────────────
 export default function RunActiveScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // 타이머 상태
   const [seconds, setSeconds] = useState(MOCK_INITIAL_SECONDS);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 스플릿 알림 카드 표시 여부
   const [showSplit, setShowSplit] = useState(false);
   const splitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -86,18 +84,14 @@ export default function RunActiveScreen() {
     };
   }, []);
 
-  /** 일시정지 / 재개 토글 */
   const handlePauseToggle = useCallback(() => {
     setIsPaused((prev) => !prev);
   }, []);
 
-  /** 종료 확인 후 홈으로 이동 */
   const handleStop = useCallback(() => {
-    // 타이머 일시정지
     setIsPaused(true);
 
     if (Platform.OS === 'web') {
-      // 웹에서는 window.confirm 사용
       const confirmed = window.confirm('러닝을 종료하시겠습니까?');
       if (confirmed) {
         router.replace('/(tabs)/');
@@ -120,294 +114,354 @@ export default function RunActiveScreen() {
     }
   }, [router]);
 
-  /** 스플릿 카드 닫기 */
   const handleDismissSplit = useCallback(() => {
     setShowSplit(false);
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 지도 영역 (플레이스홀더) */}
-      <View style={styles.mapArea}>
-        <View style={styles.mapPlaceholder}>
-          {/* 가상 경로 원호 */}
-          <View style={styles.arcContainer}>
-            <View style={styles.arc} />
-          </View>
-          {/* 현재 위치 점 */}
-          <View style={styles.locationDot} />
+    <View style={styles.container}>
+      {/* ── Map Section ─────────────────────────────── */}
+      <View style={styles.mapSection}>
+        {/* Gradient overlay: transparent -> mapDark */}
+        {LinearGradient ? (
+          <LinearGradient
+            colors={['rgba(31,41,55,0)', mapDark]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.mapGradient}
+          />
+        ) : (
+          <View style={styles.mapGradientFallback} />
+        )}
+
+        {/* Route path visualization (curved arc) */}
+        <View style={styles.routePathContainer}>
+          <View style={styles.routePath} />
         </View>
 
-        {/* 스플릿 알림 카드 */}
+        {/* Start marker */}
+        <View style={styles.startMarker} />
+
+        {/* Current position marker */}
+        <View style={styles.currentMarker} />
+
+        {/* Status bar overlay */}
+        <View style={[styles.statusBar, { paddingTop: insets.top > 0 ? insets.top : 16 }]}>
+          <Text style={styles.statusTime}>9:41</Text>
+          <View style={styles.statusIcons}>
+            <MaterialIcons name="signal-cellular-alt" size={16} color="#FFFFFF" />
+            <MaterialIcons name="wifi" size={16} color="#FFFFFF" />
+            <MaterialIcons name="battery-full" size={16} color="#FFFFFF" />
+          </View>
+        </View>
+
+        {/* Split Notification Card */}
         {showSplit && (
           <View style={styles.splitCard}>
+            {/* Header */}
             <View style={styles.splitHeader}>
-              <View style={styles.splitBadge}>
-                <Text style={styles.splitBadgeText}>
-                  {SPLIT_DATA.km} km
-                </Text>
+              <View style={styles.splitTitle}>
+                <View style={styles.splitBadge}>
+                  <Text style={styles.splitBadgeText}>{SPLIT_DATA.km} km</Text>
+                </View>
+                <Text style={styles.splitTitleText}>스플릿 완료!</Text>
               </View>
-              <Text style={styles.splitTitle}>스플릿 완료!</Text>
-              <Pressable
-                onPress={handleDismissSplit}
-                hitSlop={12}
-                style={styles.splitClose}
-              >
-                <MaterialIcons name="close" size={20} color={TEXT_SECONDARY} />
+              <Pressable onPress={handleDismissSplit} hitSlop={12}>
+                <MaterialIcons name="close" size={20} color={textSecondary} />
               </Pressable>
             </View>
-            <View style={styles.splitStats}>
-              <View style={styles.splitStatItem}>
-                <Text style={styles.splitStatValue}>
-                  {SPLIT_DATA.currentPace}
-                </Text>
-                <Text style={styles.splitStatLabel}>이번 구간 페이스</Text>
+            {/* Stats */}
+            <View style={styles.splitMetrics}>
+              <View style={styles.splitMetricItem}>
+                <Text style={styles.splitPaceValue}>{SPLIT_DATA.currentPace}</Text>
+                <Text style={styles.splitPaceLabel}>이번 구간 페이스</Text>
               </View>
-              <View style={styles.splitStatItem}>
-                <Text style={styles.splitStatValue}>
-                  {SPLIT_DATA.averagePace}
-                </Text>
-                <Text style={styles.splitStatLabel}>평균 페이스</Text>
+              <View style={styles.splitMetricItem}>
+                <Text style={styles.splitAvgValue}>{SPLIT_DATA.averagePace}</Text>
+                <Text style={styles.splitPaceLabel}>평균 페이스</Text>
               </View>
             </View>
           </View>
         )}
       </View>
 
-      {/* 대시보드 영역 */}
-      <View style={styles.dashboard}>
-        {/* 실시간 거리 */}
-        <Text style={styles.distanceValue}>
-          {MOCK_DISTANCE.toFixed(2)}
-        </Text>
-        <Text style={styles.distanceUnit}>km</Text>
+      {/* ── Metrics Section ─────────────────────────── */}
+      <View style={styles.metricsSection}>
+        {/* Distance */}
+        <View style={styles.mainMetrics}>
+          <Text style={styles.distanceValue}>{MOCK_DISTANCE.toFixed(2)}</Text>
+          <Text style={styles.distanceLabel}>km</Text>
+        </View>
 
-        {/* 타이머 */}
+        {/* Timer */}
         <Text style={styles.timerText}>{formatTime(seconds)}</Text>
 
-        {/* 페이스 & 심박수 */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{MOCK_PACE}</Text>
-            <Text style={styles.statLabel}>현재 페이스</Text>
+        {/* Pace & Heart Rate */}
+        <View style={styles.secondaryMetrics}>
+          <View style={styles.metricItem}>
+            <Text style={styles.metricValue}>{MOCK_PACE}</Text>
+            <Text style={styles.metricLabel}>현재 페이스</Text>
           </View>
-          <View style={styles.statItem}>
-            <View style={styles.heartRateRow}>
-              <Text style={styles.heartIcon}>♡</Text>
-              <Text style={styles.statValue}> {MOCK_HEART_RATE}</Text>
+          <View style={styles.metricItem}>
+            <View style={styles.heartValueRow}>
+              <MaterialIcons name="favorite" size={20} color={HeartRed} />
+              <Text style={styles.metricValue}> {MOCK_HEART_RATE}</Text>
             </View>
-            <Text style={styles.statLabel}>심박수 bpm</Text>
+            <Text style={styles.metricLabel}>심박수 bpm</Text>
           </View>
         </View>
+      </View>
 
-        {/* 하단 버튼 영역 */}
-        <View
-          style={[styles.buttonRow, { paddingBottom: insets.bottom + 24 }]}
+      {/* ── Button Section ──────────────────────────── */}
+      <View style={[styles.buttonSection, { paddingBottom: Math.max(insets.bottom, 48) }]}>
+        {/* Pause / Resume */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.pauseButton,
+            pressed && { opacity: 0.8 },
+          ]}
+          onPress={handlePauseToggle}
         >
-          {/* 일시정지 / 재개 버튼 */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              styles.pauseButton,
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={handlePauseToggle}
-          >
-            <MaterialIcons
-              name={isPaused ? 'play-arrow' : 'pause'}
-              size={22}
-              color={TEXT_PRIMARY}
-            />
-            <Text style={styles.actionButtonText}>
-              {isPaused ? '재개' : '일시정지'}
-            </Text>
-          </Pressable>
+          <MaterialIcons
+            name={isPaused ? 'play-arrow' : 'pause'}
+            size={24}
+            color="#FFFFFF"
+          />
+          <Text style={styles.actionButtonText}>
+            {isPaused ? '재개' : '일시정지'}
+          </Text>
+        </Pressable>
 
-          {/* 종료 버튼 */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              styles.stopButton,
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={handleStop}
-          >
-            <MaterialIcons name="stop" size={22} color={TEXT_PRIMARY} />
-            <Text style={styles.actionButtonText}>종료</Text>
-          </Pressable>
-        </View>
+        {/* Stop */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.stopButton,
+            pressed && { opacity: 0.8 },
+          ]}
+          onPress={handleStop}
+        >
+          <MaterialIcons name="stop" size={24} color="#FFFFFF" />
+          <Text style={styles.actionButtonText}>종료</Text>
+        </Pressable>
       </View>
     </View>
   );
 }
 
-// ─── 스타일 ─────────────────────────────────────────────────
-
+// ── Styles ───────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DARK_BG,
+    backgroundColor: backgroundDark,
   },
 
-  /* 지도 영역 */
-  mapArea: {
-    height: 280,
-    backgroundColor: DARK_SURFACE,
+  /* ── Map Section ──────────────────────────── */
+  mapSection: {
+    height: 320,
+    backgroundColor: mapDark,
     position: 'relative',
     overflow: 'hidden',
   },
-  mapPlaceholder: {
-    flex: 1,
-    position: 'relative',
+  mapGradient: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
-  arcContainer: {
+  mapGradientFallback: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+    backgroundColor: 'rgba(31,41,55,0.4)',
+  },
+  routePathContainer: {
     position: 'absolute',
-    right: 40,
-    top: 60,
-    width: 120,
-    height: 120,
+    left: 40,
+    top: 80,
+    width: 310,
+    height: 180,
+    zIndex: 2,
   },
-  arc: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
+  routePath: {
+    width: 200,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 4,
     borderColor: BrandOrange,
     borderTopColor: 'transparent',
     borderLeftColor: 'transparent',
-    transform: [{ rotate: '45deg' }],
-  },
-  locationDot: {
+    transform: [{ rotate: '30deg' }],
     position: 'absolute',
-    right: 60,
-    top: 60,
+    right: 20,
+    top: 0,
+  },
+  startMarker: {
+    position: 'absolute',
+    left: 36,
+    top: 236,
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: BrandOrange,
+    zIndex: 3,
+  },
+  currentMarker: {
+    position: 'absolute',
+    right: 30,
+    top: 136,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: BrandOrange,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 3,
+  },
+  statusBar: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 4,
+  },
+  statusTime: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  statusIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
 
-  /* 스플릿 카드 */
+  /* ── Split Card ───────────────────────────── */
   splitCard: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16,
-    backgroundColor: DARK_CARD,
+    left: 24,
+    width: 342,
+    top: 200,
+    backgroundColor: lightGray,
     borderRadius: 16,
     padding: 16,
+    gap: 12,
+    zIndex: 5,
   },
   splitHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+  },
+  splitTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
   },
   splitBadge: {
     backgroundColor: BrandOrange,
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    borderRadius: 8,
     paddingVertical: 4,
-    marginRight: 8,
+    paddingHorizontal: 10,
   },
   splitBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
   },
-  splitTitle: {
-    color: TEXT_PRIMARY,
-    fontSize: 15,
+  splitTitleText: {
+    color: '#0D0D0D',
+    fontSize: 16,
     fontWeight: '600',
-    flex: 1,
   },
-  splitClose: {
-    padding: 4,
-  },
-  splitStats: {
+  splitMetrics: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  splitStatItem: {
+  splitMetricItem: {
     alignItems: 'center',
+    gap: 2,
   },
-  splitStatValue: {
+  splitPaceValue: {
     color: BrandOrange,
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  splitStatLabel: {
-    color: TEXT_SECONDARY,
-    fontSize: 12,
-    marginTop: 4,
-  },
-
-  /* 대시보드 */
-  dashboard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 28,
-    paddingHorizontal: 24,
-  },
-
-  /* 거리 */
-  distanceValue: {
-    fontSize: 80,
-    fontWeight: '800',
-    color: BrandOrange,
-    letterSpacing: -2,
-    lineHeight: 88,
-  },
-  distanceUnit: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: TEXT_SECONDARY,
-    marginBottom: 12,
-  },
-
-  /* 타이머 */
-  timerText: {
-    fontSize: 44,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    letterSpacing: -1,
-    marginBottom: 20,
-  },
-
-  /* 통계 */
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 48,
-    marginBottom: 32,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: TEXT_PRIMARY,
   },
-  heartRateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  splitAvgValue: {
+    color: deepNavy,
+    fontSize: 24,
+    fontWeight: '700',
   },
-  heartIcon: {
-    fontSize: 20,
-    color: '#FF4D6A',
-  },
-  statLabel: {
-    fontSize: 13,
-    color: TEXT_SECONDARY,
-    marginTop: 4,
+  splitPaceLabel: {
+    color: textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
   },
 
-  /* 하단 버튼 */
-  buttonRow: {
+  /* ── Metrics Section ──────────────────────── */
+  metricsSection: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: backgroundDark,
+    gap: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+  },
+  mainMetrics: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  distanceValue: {
+    fontSize: 72,
+    fontWeight: '800',
+    color: BrandOrange,
+  },
+  distanceLabel: {
+    fontSize: 24,
+    fontWeight: '500',
+    color: textDark,
+  },
+  timerText: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1,
+  },
+  secondaryMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  metricItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  metricValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  heartValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metricLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: textDark,
+  },
+
+  /* ── Button Section ───────────────────────── */
+  buttonSection: {
     flexDirection: 'row',
     gap: 16,
-    marginTop: 'auto',
-    paddingTop: 16,
+    justifyContent: 'center',
+    paddingTop: 24,
+    paddingHorizontal: 32,
+    paddingBottom: 48,
   },
   actionButton: {
     flex: 1,
@@ -419,14 +473,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pauseButton: {
-    backgroundColor: '#404060',
+    backgroundColor: darkGray,
   },
   stopButton: {
     backgroundColor: BrandOrange,
   },
   actionButtonText: {
-    color: TEXT_PRIMARY,
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
