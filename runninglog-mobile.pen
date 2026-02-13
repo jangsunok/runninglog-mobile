@@ -13223,20 +13223,10 @@
                   "id": "IUX8d",
                   "name": "monthText2",
                   "fill": "$text",
-                  "content": "2025년 1월",
-                  "fontFamily": "Inter",
-                  "fontSize": 16,
+                  "content": "2025년 1월 기록 분석",
+                  "fontFamily": "Montserrat",
+                  "fontSize": 28,
                   "fontWeight": "600"
-                },
-                {
-                  "type": "icon_font",
-                  "id": "gQKl8",
-                  "name": "chevronIcon2",
-                  "width": 20,
-                  "height": 20,
-                  "iconFontName": "chevron-down",
-                  "iconFontFamily": "lucide",
-                  "fill": "$textSecondary"
                 }
               ]
             },
@@ -15446,7 +15436,7 @@
                                   "x": 0,
                                   "y": 0,
                                   "name": "zone1Bar",
-                                  "fill": "#EEEEEE",
+                                  "fill": "#60a5fa",
                                   "width": 31,
                                   "height": 40
                                 },
@@ -15656,7 +15646,7 @@
                                   "x": 0,
                                   "y": 0,
                                   "name": "zone1Bar",
-                                  "fill": "#EEEEEE",
+                                  "fill": "#60a5fa",
                                   "width": 31,
                                   "height": 40
                                 },
@@ -15866,7 +15856,7 @@
                                   "x": 0,
                                   "y": 0,
                                   "name": "zone1Bar",
-                                  "fill": "#EEEEEE",
+                                  "fill": "#60a5fa",
                                   "width": 31,
                                   "height": 40
                                 },
@@ -16076,7 +16066,7 @@
                                   "x": 0,
                                   "y": 0,
                                   "name": "zone1Bar",
-                                  "fill": "#EEEEEE",
+                                  "fill": "#60a5fa",
                                   "width": 31,
                                   "height": 40
                                 },
@@ -16286,7 +16276,7 @@
                                   "x": 0,
                                   "y": 0,
                                   "name": "zone1Bar",
-                                  "fill": "#EEEEEE",
+                                  "fill": "#60a5fa",
                                   "width": 31,
                                   "height": 40
                                 },
@@ -16475,7 +16465,7 @@
                                   "cornerRadius": 2,
                                   "id": "B0dAk",
                                   "name": "zone1Dot",
-                                  "fill": "#EEEEEE",
+                                  "fill": "#60a5fa",
                                   "width": 12,
                                   "height": 12
                                 },
@@ -22628,8 +22618,8 @@
     {
       "type": "note",
       "id": "riFOT",
-      "x": 269,
-      "y": 1954,
+      "x": 292,
+      "y": 2397,
       "width": 250,
       "height": 219,
       "content": "이달의 요약\n- 가장 긴 거리\n- 최장 활동 시간\n- 가장 빠른 평균 페이스\n- 가장 높은 케이던스\n- 가장 높은 칼로리\n가장 빠른 5km, 10km, half, full\n\n공유하기!!!"
@@ -30273,7 +30263,7 @@
                       "type": "text",
                       "id": "LtwmJ",
                       "name": "z2Label",
-                      "fill": "$accentGreen",
+                      "fill": "#8bc34a",
                       "textGrowth": "fixed-width",
                       "width": 48,
                       "content": "Zone 2",
@@ -30295,7 +30285,7 @@
                           "cornerRadius": 4,
                           "id": "aKNNt",
                           "name": "z2Fill",
-                          "fill": "$accentGreen",
+                          "fill": "#8bc34a",
                           "width": 80,
                           "height": 16
                         }
