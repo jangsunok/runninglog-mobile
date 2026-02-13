@@ -1,4 +1,18 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
+import {
+  Montserrat_500Medium,
+  Montserrat_700Bold,
+  Montserrat_800ExtraBold,
+} from '@expo-google-fonts/montserrat';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -34,12 +48,24 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isReady, isLoggedIn } = useAuth();
 
-  useEffect(() => {
-    if (!isReady) return;
-    SplashScreen.hideAsync();
-  }, [isReady]);
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Montserrat_500Medium,
+    Montserrat_700Bold,
+    Montserrat_800ExtraBold,
+    BebasNeue_400Regular,
+  });
 
-  if (!isReady) return null;
+  useEffect(() => {
+    if (!isReady || !fontsLoaded) return;
+    SplashScreen.hideAsync();
+  }, [isReady, fontsLoaded]);
+
+  if (!isReady || !fontsLoaded) return null;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

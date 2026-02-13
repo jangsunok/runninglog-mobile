@@ -6,10 +6,12 @@ import {
   Pressable,
   SafeAreaView,
   Text,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { BrandOrange } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BrandOrange, F } from '@/constants/theme';
 
 // ─── 디자인 토큰 ──────────────────────────────────────────────
 const C = {
@@ -105,12 +107,14 @@ function VerticalBarChart({
               <Text style={[chartS.barVal, hl && chartS.barValHl]}>
                 {formatVal ? formatVal(v) : String(v)}
               </Text>
-              <View
-                style={[
-                  chartS.bar,
-                  { height: Math.max(barH, 4), backgroundColor: hl ? C.orange : C.border },
-                ]}
-              />
+              {hl ? (
+                <LinearGradient
+                  colors={['#FFB74D', C.orange]}
+                  style={[chartS.bar, { height: Math.max(barH, 4) }]}
+                />
+              ) : (
+                <View style={[chartS.bar, { height: Math.max(barH, 4), backgroundColor: C.border }]} />
+              )}
             </View>
           );
         })}
@@ -148,12 +152,16 @@ function HorizontalBarChart({
           <View key={i} style={hbarS.row}>
             <Text style={hbarS.label}>{labels[i]}</Text>
             <View style={hbarS.track}>
-              <View
-                style={[
-                  hbarS.bar,
-                  { width: barW as any, backgroundColor: hl ? C.orange : C.border },
-                ]}
-              />
+              {hl ? (
+                <LinearGradient
+                  colors={['#FFB74D', C.orange]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[hbarS.bar, { width: barW as any }]}
+                />
+              ) : (
+                <View style={[hbarS.bar, { width: barW as any, backgroundColor: C.border }]} />
+              )}
             </View>
             <Text style={[hbarS.val, hl && { color: C.orange }]}>
               {formatVal ? formatVal(v) : String(v)}
@@ -197,12 +205,14 @@ function PaceChart({
                   <Text style={[paceS.minLabel, hl && { color: C.orange }]}>
                     {formatPace(d.min)}
                   </Text>
-                  <View
-                    style={[
-                      paceS.rangeBar,
-                      { height: Math.max(barH, 8), backgroundColor: hl ? C.orange : C.border },
-                    ]}
-                  />
+                  {hl ? (
+                    <LinearGradient
+                      colors={['#FFB74D', C.orange]}
+                      style={[paceS.rangeBar, { height: Math.max(barH, 8) }]}
+                    />
+                  ) : (
+                    <View style={[paceS.rangeBar, { height: Math.max(barH, 8), backgroundColor: C.border }]} />
+                  )}
                   <Text style={[paceS.maxLabel, hl && { color: C.orange }]}>
                     {formatPace(d.max)}
                   </Text>
@@ -237,20 +247,27 @@ function ZoneChart({
           <View key={i} style={zoneS.row}>
             <Text style={zoneS.monthLabel}>{row.month}</Text>
             <View style={zoneS.barTrack}>
-              {row.zones.map((z, zi) => (
-                <View
-                  key={zi}
-                  style={[
-                    zoneS.zoneSegment,
-                    {
-                      flex: z / total,
-                      backgroundColor: ZONE_COLORS[zi],
-                    },
-                    zi === 0 && { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
-                    zi === row.zones.length - 1 && { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
-                  ]}
-                />
-              ))}
+              {row.zones.map((z, zi) => {
+                const pct = Math.round((z / total) * 100);
+                return (
+                  <View
+                    key={zi}
+                    style={[
+                      zoneS.zoneSegment,
+                      {
+                        flex: z / total,
+                        backgroundColor: ZONE_COLORS[zi],
+                      },
+                      zi === 0 && { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
+                      zi === row.zones.length - 1 && { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+                    ]}
+                  >
+                    {pct >= 8 && (
+                      <Text style={[zoneS.segmentText, zi <= 2 && { color: '#555' }]}>{pct}%</Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </View>
         );
@@ -261,7 +278,6 @@ function ZoneChart({
           <View key={i} style={zoneS.legendItem}>
             <View style={[zoneS.legendDot, { backgroundColor: ZONE_COLORS[i] }]} />
             <Text style={zoneS.legendText}>{label}</Text>
-            <Text style={zoneS.legendDesc}>{ZONE_DESCS[i]}</Text>
           </View>
         ))}
       </View>
@@ -357,8 +373,11 @@ export default function AnalyzeScreen() {
               <Text style={s.aiCardBody}>{OVERALL_BODY}</Text>
               <View style={s.aiFooter}>
                 <Text style={s.aiFooterLabel}>당신의 페이스메이커</Text>
-                <View style={s.aiAvatar}>
-                  <MaterialIcons name="smart-toy" size={18} color="#FFFFFF" />
+                <View style={s.aiAvatarCircle}>
+                  <Image
+                    source={require('@/assets/images/botIcon.png')}
+                    style={s.aiAvatarIcon}
+                  />
                 </View>
               </View>
             </View>
@@ -442,16 +461,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: C.text },
+  headerTitle: { fontSize: 28, fontFamily: F.inter700, color: C.text },
   monthSelector: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  monthText: { fontSize: 16, fontWeight: '600', color: C.text },
+  monthText: { fontSize: 16, fontFamily: F.inter600, color: C.text },
 
   // 섹션 컨테이너
   sections: { gap: 24, paddingHorizontal: 20, paddingTop: 8 },
 
   // 섹션 제목 & 코멘트
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 4 },
-  sectionComment: { fontSize: 14, color: C.text, lineHeight: 21, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontFamily: F.inter700, color: C.text, marginBottom: 4 },
+  sectionComment: { fontSize: 14, fontFamily: F.inter400, color: C.text, lineHeight: 21, marginBottom: 12 },
 
   // 종합 분석 카드
   aiCard: {
@@ -461,22 +480,32 @@ const s = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-  aiCardTitle: { fontSize: 14, fontWeight: '600', color: C.darkGray, lineHeight: 21 },
-  aiCardBody: { fontSize: 14, color: C.darkGray, lineHeight: 21 },
+  aiCardTitle: { fontSize: 14, fontFamily: F.inter600, color: C.darkGray, lineHeight: 21 },
+  aiCardBody: { fontSize: 14, fontFamily: F.inter400, color: C.darkGray, lineHeight: 21 },
   aiFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 8,
   },
-  aiFooterLabel: { fontSize: 13, fontWeight: '600', color: C.darkGray },
+  aiFooterLabel: { fontSize: 13, fontFamily: F.inter600, color: C.darkGray },
   aiAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  aiAvatarCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: C.orange,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  aiAvatarIcon: {
+    width: 16,
+    height: 16,
+    tintColor: '#FFFFFF',
   },
 
   // 피드백
@@ -503,7 +532,7 @@ const s = StyleSheet.create({
     height: 32,
   },
   feedbackBtnActive: { borderColor: C.orange, backgroundColor: 'rgba(255,111,0,0.06)' },
-  feedbackBtnText: { fontSize: 14, fontWeight: '500', color: C.darkGray },
+  feedbackBtnText: { fontSize: 14, fontFamily: F.inter500, color: C.darkGray },
 });
 
 // 차트 공통
@@ -522,7 +551,7 @@ const chartS = StyleSheet.create({
   barCol: { alignItems: 'center', flex: 1 },
   bar: { width: 28, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   barVal: { fontSize: 12, color: C.textTertiary, marginBottom: 4 },
-  barValHl: { color: C.orange, fontWeight: '700' },
+  barValHl: { color: C.orange, fontFamily: F.mont700 },
   labelsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
   label: { fontSize: 12, color: C.textTertiary, flex: 1, textAlign: 'center' },
 });
@@ -530,7 +559,7 @@ const chartS = StyleSheet.create({
 // 가로 바
 const hbarS = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  label: { width: 35, fontSize: 12, fontWeight: '600', color: C.textTertiary },
+  label: { width: 35, fontSize: 12, fontFamily: F.inter600, color: C.textTertiary },
   track: {
     flex: 1,
     height: 24,
@@ -544,20 +573,21 @@ const hbarS = StyleSheet.create({
 
 // 페이스 차트
 const paceS = StyleSheet.create({
-  minLabel: { fontSize: 10, fontWeight: '500', color: C.border, textAlign: 'center' },
-  maxLabel: { fontSize: 10, fontWeight: '500', color: C.border, textAlign: 'center' },
+  minLabel: { fontSize: 10, fontFamily: F.inter500, color: C.border, textAlign: 'center' },
+  maxLabel: { fontSize: 10, fontFamily: F.inter500, color: C.border, textAlign: 'center' },
   rangeBar: { width: 28, borderRadius: 4, alignSelf: 'center' },
 });
 
 // 심박수 존
 const zoneS = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
-  monthLabel: { width: 30, fontSize: 12, fontWeight: '600', color: C.textTertiary },
+  monthLabel: { width: 30, fontSize: 12, fontFamily: F.inter600, color: C.textTertiary },
   barTrack: { flex: 1, flexDirection: 'row', height: 28 },
-  zoneSegment: { height: 28 },
-  legend: { marginTop: 16, gap: 8 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  zoneSegment: { height: 28, justifyContent: 'center', alignItems: 'center' },
+  segmentText: { fontSize: 10, fontFamily: F.inter600, color: '#FFFFFF' },
+  legend: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 12, height: 12, borderRadius: 3 },
-  legendText: { fontSize: 12, fontWeight: '600', color: C.text, width: 48 },
+  legendText: { fontSize: 12, fontFamily: F.inter600, color: C.text, width: 48 },
   legendDesc: { fontSize: 12, color: C.textTertiary },
 });

@@ -1,11 +1,11 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Text, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedView } from '@/components/themed-view';
-import { BrandOrange, BrandOrangeLight, Colors } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight, Colors, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ─── 목업 데이터 ────────────────────────────────────────────
@@ -144,7 +144,7 @@ export default function HomeScreen() {
               당신의 페이스메이커
             </Text>
             <View style={styles.aiIconCircle}>
-              <MaterialIcons name="smart-toy" size={18} color="#FFFFFF" />
+              <Image source={require('@/assets/images/botIcon.png')} style={styles.aiIconImage} />
             </View>
           </View>
         </View>
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   /* 날짜 헤더 */
   dateText: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: F.inter700,
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   dayLabel: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     marginBottom: 8,
   },
   dateBadge: {
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
   dateNumber: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: F.inter600,
   },
 
   /* 거리 표시 */
@@ -243,20 +243,20 @@ const styles = StyleSheet.create({
   },
   distanceValue: {
     fontSize: 72,
-    fontWeight: '800',
+    fontFamily: F.mont800,
     color: BrandOrange,
     letterSpacing: -2,
   },
   distanceUnit: {
     fontSize: 24,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     marginLeft: 8,
   },
 
   /* 타이머 */
   timerText: {
     fontSize: 48,
-    fontWeight: '700',
+    fontFamily: F.mont700,
     textAlign: 'center',
     marginBottom: 20,
     letterSpacing: -1,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: F.mont700,
   },
   heartRateRow: {
     flexDirection: 'row',
@@ -290,16 +290,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  /* AI 페이스메이커 카드 */
+  /* AI 페이스메이커 카드 (pen: goalCard) */
   aiCard: {
     borderRadius: 16,
     padding: 16,
+    gap: 12,
     marginBottom: 32,
   },
   aiMessage: {
     fontSize: 14,
+    fontFamily: F.inter400,
     lineHeight: 21,
-    marginBottom: 16,
     color: '#374151',
   },
   aiFooter: {
@@ -310,7 +311,8 @@ const styles = StyleSheet.create({
   },
   aiLabel: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: F.inter600,
+    color: '#374151',
   },
   aiIconCircle: {
     width: 32,
@@ -319,6 +321,11 @@ const styles = StyleSheet.create({
     backgroundColor: BrandOrange,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  aiIconImage: {
+    width: 16,
+    height: 16,
+    tintColor: '#FFFFFF',
   },
 
   /* RUN 버튼 */
@@ -350,7 +357,7 @@ const styles = StyleSheet.create({
   runButtonText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     letterSpacing: 1.2,
     marginTop: -2,
   },

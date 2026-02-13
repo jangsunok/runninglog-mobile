@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BrandOrange, BrandOrangeLight } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight, F } from '@/constants/theme';
 
 // ─────────────────────────────────────────────
 // 뷰 모드 타입
@@ -40,6 +40,7 @@ const COLOR_TEXT_TERTIARY = '#9CA3AF';
 const COLOR_BACKGROUND = '#FFFFFF';
 const COLOR_LIGHT_GRAY = '#F3F4F6';
 const COLOR_BORDER = '#E5E5E5';
+const COLOR_SURFACE = '#f9fafb';
 
 // ─────────────────────────────────────────────
 // 유틸: 날짜 계산 도우미
@@ -66,8 +67,31 @@ function isToday(year: number, month: number, day: number): boolean {
   return now.getFullYear() === year && now.getMonth() + 1 === month && now.getDate() === day;
 }
 
+/** 주어진 날짜가 포함된 주의 월요일 구하기 */
+function getWeekMonday(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** 해당 날짜가 그 달의 몇 주차인지 (월요일 시작) */
+function getWeekOfMonth(date: Date): number {
+  const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstMonday = getWeekMonday(firstOfMonth);
+  if (firstMonday.getMonth() < firstOfMonth.getMonth() || firstMonday.getFullYear() < firstOfMonth.getFullYear()) {
+    firstMonday.setDate(firstMonday.getDate() + 7);
+  }
+  const monday = getWeekMonday(date);
+  const weekNum = Math.floor((monday.getTime() - firstMonday.getTime()) / (7 * 86400000)) + 1;
+  return Math.max(1, weekNum);
+}
+
 // 월요일 시작 (pen 디자인 기준)
 const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
 // ═════════════════════════════════════════════
 // 메인 컴포넌트
@@ -79,6 +103,10 @@ export default function CalendarScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentYear, setCurrentYear] = useState(2025);
   const [currentMonth, setCurrentMonth] = useState(1);
+  const [weekMonday, setWeekMonday] = useState(() => {
+    // 2025년 1월 3주차 월요일 (pen 디자인 기준)
+    return getWeekMonday(new Date(2025, 0, 13));
+  });
 
   // 월 네비게이션
   const goToPrevMonth = useCallback(() => {
@@ -99,6 +127,43 @@ export default function CalendarScreen() {
     }
   }, [currentMonth]);
 
+  // 주간 네비게이션
+  const goToPrevWeek = useCallback(() => {
+    setWeekMonday((m) => {
+      const d = new Date(m);
+      d.setDate(d.getDate() - 7);
+      return d;
+    });
+  }, []);
+
+  const goToNextWeek = useCallback(() => {
+    setWeekMonday((m) => {
+      const d = new Date(m);
+      d.setDate(d.getDate() + 7);
+      return d;
+    });
+  }, []);
+
+  // 연간 네비게이션
+  const goToPrevYear = useCallback(() => setCurrentYear((y) => y - 1), []);
+  const goToNextYear = useCallback(() => setCurrentYear((y) => y + 1), []);
+
+  // 주간 뷰 데이터
+  const weekDays = useMemo(() => {
+    const days: { day: number; month: number; year: number }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekMonday);
+      d.setDate(d.getDate() + i);
+      days.push({ day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() });
+    }
+    return days;
+  }, [weekMonday]);
+
+  const weekLabel = useMemo(() => {
+    const wom = getWeekOfMonth(weekMonday);
+    return `${weekMonday.getFullYear()}년 ${weekMonday.getMonth() + 1}월 ${wom}주차`;
+  }, [weekMonday]);
+
   // 월간 캘린더 그리드 데이터 (월요일 시작)
   const monthGrid = useMemo(() => {
     const firstDay = getFirstDayOfMonthMon(currentYear, currentMonth);
@@ -110,12 +175,10 @@ export default function CalendarScreen() {
     const rows: { day: number; isCurrentMonth: boolean }[][] = [];
     let currentRow: { day: number; isCurrentMonth: boolean }[] = [];
 
-    // 이전 달 날짜 (빈 셀)
     for (let i = 0; i < firstDay; i++) {
       currentRow.push({ day: prevDays - firstDay + 1 + i, isCurrentMonth: false });
     }
 
-    // 현재 달 날짜
     for (let d = 1; d <= daysInMonth; d++) {
       currentRow.push({ day: d, isCurrentMonth: true });
       if (currentRow.length === 7) {
@@ -124,7 +187,6 @@ export default function CalendarScreen() {
       }
     }
 
-    // 마지막 줄 채우기
     if (currentRow.length > 0) {
       let nextDay = 1;
       while (currentRow.length < 7) {
@@ -133,7 +195,6 @@ export default function CalendarScreen() {
       rows.push(currentRow);
     }
 
-    // 6줄 고정
     while (rows.length < 6) {
       const lastRow = rows[rows.length - 1];
       const lastDayInLastRow = lastRow[lastRow.length - 1];
@@ -147,6 +208,34 @@ export default function CalendarScreen() {
 
     return rows;
   }, [currentYear, currentMonth]);
+
+  // 연간 뷰: 12개월 미니 그리드 데이터
+  const yearGrids = useMemo(() => {
+    return Array.from({ length: 12 }, (_, mi) => {
+      const month = mi + 1;
+      const firstDay = getFirstDayOfMonthMon(currentYear, month);
+      const daysInMonth = getDaysInMonth(currentYear, month);
+      const weeks: (number | null)[][] = [];
+      let row: (number | null)[] = Array(firstDay).fill(null);
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        row.push(d);
+        if (row.length === 7) {
+          weeks.push(row);
+          row = [];
+        }
+      }
+      if (row.length > 0) {
+        while (row.length < 7) row.push(null);
+        weeks.push(row);
+      }
+      while (weeks.length < 6) {
+        weeks.push(Array(7).fill(null));
+      }
+
+      return { month, weeks };
+    });
+  }, [currentYear]);
 
   // ─────────────────────────────────────────
   // 세그먼트 컨트롤 (pen: pill 스타일)
@@ -184,19 +273,39 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // 월 네비게이션
+  // 네비게이션 (모드별 분기)
   // ─────────────────────────────────────────
-  const renderNavigation = () => (
-    <View style={styles.navigationRow}>
-      <TouchableOpacity onPress={goToPrevMonth} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Ionicons name="chevron-back" size={24} color={COLOR_TEXT_SECONDARY} />
-      </TouchableOpacity>
-      <Text style={styles.navLabel}>{`${currentYear}년 ${currentMonth}월`}</Text>
-      <TouchableOpacity onPress={goToNextMonth} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Ionicons name="chevron-forward" size={24} color={COLOR_TEXT_SECONDARY} />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderNavigation = () => {
+    let label = '';
+    let onPrev: () => void;
+    let onNext: () => void;
+
+    if (viewMode === 'weekly') {
+      label = weekLabel;
+      onPrev = goToPrevWeek;
+      onNext = goToNextWeek;
+    } else if (viewMode === 'yearly') {
+      label = `${currentYear}년`;
+      onPrev = goToPrevYear;
+      onNext = goToNextYear;
+    } else {
+      label = `${currentYear}년 ${currentMonth}월`;
+      onPrev = goToPrevMonth;
+      onNext = goToNextMonth;
+    }
+
+    return (
+      <View style={styles.navigationRow}>
+        <TouchableOpacity onPress={onPrev} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="chevron-back" size={24} color={COLOR_TEXT_SECONDARY} />
+        </TouchableOpacity>
+        <Text style={styles.navLabel}>{label}</Text>
+        <TouchableOpacity onPress={onNext} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="chevron-forward" size={24} color={COLOR_TEXT_SECONDARY} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   // ─────────────────────────────────────────
   // 요일 헤더
@@ -250,6 +359,69 @@ export default function CalendarScreen() {
   };
 
   // ─────────────────────────────────────────
+  // 주간 뷰
+  // ─────────────────────────────────────────
+  const renderWeeklyView = () => (
+    <View>
+      {renderWeekdayHeader()}
+      <View style={styles.weekRow}>
+        {weekDays.map((wd, i) => {
+          const hasRun = isRunDay(wd.year, wd.month, wd.day);
+          const todayFlag = isToday(wd.year, wd.month, wd.day);
+          return (
+            <View key={i} style={styles.dayCell}>
+              <View
+                style={[
+                  styles.dayBadge,
+                  hasRun && styles.dayBadgeRun,
+                  !hasRun && !todayFlag && styles.dayBadgeEmpty,
+                  todayFlag && !hasRun && styles.dayBadgeToday,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.dayText,
+                    styles.dayTextCurrent,
+                    hasRun && styles.dayTextRun,
+                    todayFlag && !hasRun && styles.dayTextToday,
+                  ]}
+                >
+                  {wd.day}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  // ─────────────────────────────────────────
+  // 주간 상세 메트릭 (pen: metricsSection)
+  // ─────────────────────────────────────────
+  const renderWeeklyMetrics = () => (
+    <View style={wkS.metricsSection}>
+      <View style={wkS.mainMetrics}>
+        <Text style={wkS.distanceValue}>5.23</Text>
+        <Text style={wkS.distanceUnit}>km</Text>
+      </View>
+      <Text style={wkS.timeValue}>00:28:45</Text>
+      <View style={wkS.secondaryRow}>
+        <View style={wkS.secondaryItem}>
+          <Text style={wkS.secondaryValue}>5'29"</Text>
+          <Text style={wkS.secondaryLabel}>현재 페이스</Text>
+        </View>
+        <View style={wkS.secondaryItem}>
+          <Text style={wkS.secondaryValue}>
+            <Text style={{ color: '#EF4444' }}>♥ </Text>156
+          </Text>
+          <Text style={wkS.secondaryLabel}>심박수 bpm</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  // ─────────────────────────────────────────
   // 월간 뷰
   // ─────────────────────────────────────────
   const renderMonthlyView = () => (
@@ -266,11 +438,60 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
+  // 연간 뷰: 미니 캘린더 그리드
+  // ─────────────────────────────────────────
+  const renderYearlyView = () => (
+    <View style={yrS.container}>
+      {[0, 1, 2, 3, 4, 5].map((rowIdx) => (
+        <View key={rowIdx} style={yrS.monthRow}>
+          {[0, 1].map((colIdx) => {
+            const grid = yearGrids[rowIdx * 2 + colIdx];
+            return (
+              <View key={colIdx} style={yrS.monthCard}>
+                <Text style={yrS.monthTitle}>{MONTH_NAMES[grid.month - 1]}</Text>
+                <View style={yrS.miniGrid}>
+                  {grid.weeks.map((week, wi) => (
+                    <View key={wi} style={yrS.miniWeekRow}>
+                      {week.map((day, di) => {
+                        if (day === null) {
+                          return <View key={di} style={yrS.miniDayEmpty} />;
+                        }
+                        const hasRun = isRunDay(currentYear, grid.month, day);
+                        return (
+                          <View
+                            key={di}
+                            style={[
+                              yrS.miniDay,
+                              { backgroundColor: hasRun ? BrandOrange : COLOR_SURFACE },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                yrS.miniDayText,
+                                hasRun && yrS.miniDayTextRun,
+                              ]}
+                            >
+                              {day}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+
+  // ─────────────────────────────────────────
   // 전체 기록 섹션 (pen 디자인: 통합 카드)
   // ─────────────────────────────────────────
   const renderSummarySection = () => (
     <View style={styles.summarySection}>
-      {/* 전체 기록 타이틀 + 분석보기 버튼 */}
       <View style={styles.summaryHeader}>
         <Text style={styles.summaryLabel}>전체 기록</Text>
         <TouchableOpacity
@@ -283,14 +504,12 @@ export default function CalendarScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 누적 거리 */}
       <View style={styles.bigDistanceRow}>
         <Text style={styles.bigDistanceLabel}>누적 거리</Text>
         <Text style={styles.bigDistanceNumber}>5.23</Text>
         <Text style={styles.bigDistanceUnit}>km</Text>
       </View>
 
-      {/* 통계 통합 카드 */}
       <View style={styles.statsCard}>
         <View style={styles.statsInnerRow}>
           <View style={styles.statItem}>
@@ -347,25 +566,133 @@ export default function CalendarScreen() {
           <Text style={styles.headerTitle}>기록</Text>
         </View>
 
-        {/* 2. 월간 스트릭 캘린더 카드 */}
+        {/* 2. 캘린더 카드 */}
         <View style={styles.calendarCard}>
           {renderSegmentControl()}
           {renderNavigation()}
-          {renderMonthlyView()}
+          {viewMode === 'weekly' && renderWeeklyView()}
+          {viewMode === 'monthly' && renderMonthlyView()}
+          {viewMode === 'yearly' && renderYearlyView()}
         </View>
 
-        {/* 3. 전체 기록 요약 */}
-        {renderSummarySection()}
+        {/* 주간: 메트릭 섹션 */}
+        {viewMode === 'weekly' && renderWeeklyMetrics()}
 
-        {/* 4. 상세 기록 */}
-        {renderDetailRecords()}
+        {/* 월간/연간: 전체 기록 요약 */}
+        {viewMode !== 'weekly' && renderSummarySection()}
 
-        {/* 하단 여백 */}
+        {/* 상세 기록 (월간만) */}
+        {viewMode === 'monthly' && renderDetailRecords()}
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
 }
+
+// ═════════════════════════════════════════════
+// 주간 메트릭 스타일 (pen: metricsSection)
+// ═════════════════════════════════════════════
+const wkS = StyleSheet.create({
+  metricsSection: {
+    alignItems: 'center',
+    gap: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    backgroundColor: COLOR_BACKGROUND,
+  },
+  mainMetrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  distanceValue: {
+    fontSize: 72,
+    fontFamily: F.mont800,
+    color: BrandOrange,
+  },
+  distanceUnit: {
+    fontSize: 24,
+    fontFamily: F.inter500,
+    color: COLOR_TEXT,
+  },
+  timeValue: {
+    fontSize: 48,
+    fontFamily: F.mont700,
+    color: COLOR_TEXT,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  secondaryItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  secondaryValue: {
+    fontSize: 28,
+    fontFamily: F.mont700,
+    color: COLOR_TEXT,
+  },
+  secondaryLabel: {
+    fontSize: 14,
+    fontFamily: F.inter500,
+    color: COLOR_TEXT,
+  },
+});
+
+// ═════════════════════════════════════════════
+// 연간 뷰 스타일 (pen: miniCalendar)
+// ═════════════════════════════════════════════
+const yrS = StyleSheet.create({
+  container: {
+    gap: 12,
+  },
+  monthRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  monthCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR_SURFACE,
+    padding: 8,
+    gap: 4,
+  },
+  monthTitle: {
+    fontSize: 12,
+    fontFamily: F.inter600,
+    color: COLOR_TEXT,
+  },
+  miniGrid: {
+    gap: 2,
+  },
+  miniWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    height: 14,
+  },
+  miniDay: {
+    width: 18,
+    height: 12,
+    borderRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniDayEmpty: {
+    width: 18,
+    height: 12,
+  },
+  miniDayText: {
+    fontSize: 8,
+    color: COLOR_TEXT,
+  },
+  miniDayTextRun: {
+    color: '#FFFFFF',
+  },
+});
 
 // ═════════════════════════════════════════════
 // 스타일 (pen design aligned)
@@ -393,7 +720,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: F.inter700,
     color: COLOR_TEXT,
   },
 
@@ -429,14 +756,14 @@ const styles = StyleSheet.create({
   },
   segmentTextActive: {
     color: BrandOrangeLight,
-    fontWeight: '600',
+    fontFamily: F.inter600,
   },
   segmentTextInactive: {
     color: COLOR_TEXT_TERTIARY,
-    fontWeight: '500',
+    fontFamily: F.inter500,
   },
 
-  // ─── 월 네비게이션 ───
+  // ─── 네비게이션 ───
   navigationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -446,7 +773,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: F.inter700,
     color: '#1F2937',
   },
 
@@ -461,7 +788,7 @@ const styles = StyleSheet.create({
   },
   weekdayText: {
     fontSize: 12,
-    fontWeight: '400',
+    fontFamily: F.inter400,
     color: COLOR_TEXT_TERTIARY,
   },
 
@@ -496,7 +823,7 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: F.inter500,
   },
   dayTextCurrent: {
     color: COLOR_TEXT,
@@ -506,11 +833,11 @@ const styles = StyleSheet.create({
   },
   dayTextRun: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontFamily: F.inter700,
   },
   dayTextToday: {
     color: BrandOrange,
-    fontWeight: '700',
+    fontFamily: F.inter700,
   },
 
   // ─── 3. 전체 기록 요약 ───
@@ -526,7 +853,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: COLOR_TEXT,
   },
   analyzeButton: {
@@ -543,7 +870,7 @@ const styles = StyleSheet.create({
   },
   analyzeBtnText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     color: '#374151',
   },
 
@@ -561,7 +888,7 @@ const styles = StyleSheet.create({
   },
   bigDistanceNumber: {
     fontSize: 30,
-    fontWeight: '800',
+    fontFamily: F.mont800,
     color: BrandOrange,
   },
   bigDistanceUnit: {
@@ -586,7 +913,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: F.mont700,
     color: COLOR_TEXT,
   },
   statLabel: {
@@ -602,7 +929,7 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: COLOR_TEXT,
     marginBottom: 8,
   },
@@ -611,7 +938,7 @@ const styles = StyleSheet.create({
   },
   recordMain: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: COLOR_TEXT,
     marginBottom: 4,
   },

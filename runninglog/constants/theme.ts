@@ -55,6 +55,22 @@ export const Colors = {
   },
 };
 
+/** 커스텀 폰트 (Google Fonts) */
+export const F = {
+  // Inter — 본문, 레이블
+  inter400: 'Inter_400Regular',
+  inter500: 'Inter_500Medium',
+  inter600: 'Inter_600SemiBold',
+  inter700: 'Inter_700Bold',
+  inter800: 'Inter_800ExtraBold',
+  // Montserrat — 큰 숫자, 메트릭
+  mont500: 'Montserrat_500Medium',
+  mont700: 'Montserrat_700Bold',
+  mont800: 'Montserrat_800ExtraBold',
+  // Bebas Neue — 초대형 숫자
+  bebas: 'BebasNeue_400Regular',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',

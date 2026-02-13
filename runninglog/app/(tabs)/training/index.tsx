@@ -11,7 +11,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Medals } from '@/constants/assets';
-import { BrandOrange } from '@/constants/theme';
+import { BrandOrange, F } from '@/constants/theme';
 
 // ─── 목업 데이터 ───────────────────────────────────────────────
 const MOCK_ACHIEVEMENTS = [
@@ -386,14 +386,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: F.inter700,
     color: '#0D0D0D',
   },
 
   // ── 섹션 제목 ──
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#0D0D0D',
   },
 
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   },
   goalTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#0D0D0D',
     marginBottom: 12,
   },
@@ -429,12 +429,12 @@ const styles = StyleSheet.create({
   },
   progressValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: F.mont700,
     color: BrandOrange,
   },
   progressUnit: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     color: '#6B7280',
   },
   percentBadge: {
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   percentText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: F.inter700,
   },
   progressBarBg: {
     height: 6,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   setGoalButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: F.inter700,
   },
 
   // ── 업적 섹션 ──
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   pastButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     color: '#374151',
   },
   achievementDesc: {
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   },
   medalLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#0D0D0D',
   },
   newRecordBadge: {
@@ -580,17 +580,17 @@ const styles = StyleSheet.create({
   newRecordText: {
     color: '#FFFFFF',
     fontSize: 8,
-    fontWeight: '700',
+    fontFamily: F.inter700,
   },
   medalTime: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#9CA3AF',
     marginBottom: 2,
   },
   medalDate: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#9CA3AF',
   },
 
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: F.inter700,
     color: '#0D0D0D',
   },
   closeButton: {
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#6B7280',
   },
   segmentTextActive: {
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   // ── 입력 필드 ──
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     color: '#0D0D0D',
     marginBottom: 8,
   },
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   },
   inputUnit: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: F.inter500,
     color: '#6B7280',
     marginLeft: 8,
   },
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: F.inter600,
     color: '#374151',
   },
   submitButton: {
@@ -711,6 +711,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: F.inter700,
   },
 });
