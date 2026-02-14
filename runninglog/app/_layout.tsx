@@ -17,6 +17,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import 'react-native-reanimated';
 
@@ -67,23 +68,31 @@ function RootLayoutNav() {
     SplashScreen.hideAsync();
   }, [isReady, fontsLoaded]);
 
-  if (!isReady || !fontsLoaded) return null;
+  const ready = isReady && fontsLoaded;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
-          <>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="analyze" />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </>
-        ) : (
-          <Stack.Screen name="(auth)" />
-        )}
-      </Stack>
-      <StatusBar style="auto" />
-      <Toast config={toastConfig} position="bottom" bottomOffset={48} visibilityTime={3000} />
+      {!ready ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" />
+        </View>
+      ) : (
+        <>
+          <Stack screenOptions={{ headerShown: false }}>
+            {isLoggedIn ? (
+              <>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="analyze" />
+                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              </>
+            ) : (
+              <Stack.Screen name="(auth)" />
+            )}
+          </Stack>
+          <StatusBar style="auto" />
+          <Toast config={toastConfig} position="bottom" bottomOffset={48} visibilityTime={3000} />
+        </>
+      )}
     </ThemeProvider>
   );
 }

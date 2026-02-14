@@ -1,9 +1,8 @@
 /**
- * Apple HealthKit 서비스
- * - iOS 전용: HealthKit에서 러닝 워크아웃을 읽어 SyncActivityItem으로 변환
+ * Apple HealthKit 서비스 (iOS 전용)
+ * - HealthKit에서 러닝 워크아웃을 읽어 SyncActivityItem으로 변환
  */
 
-import { Platform } from 'react-native';
 import type { SyncActivityItem } from '@/types/activity';
 import {
   isAvailable,
@@ -13,13 +12,10 @@ import {
 import type { Workout } from '@kayzmann/expo-healthkit';
 
 export function isAppleHealthAvailable(): boolean {
-  if (Platform.OS !== 'ios') return false;
   return isAvailable();
 }
 
 export async function requestAppleHealthPermissions(): Promise<boolean> {
-  if (!isAppleHealthAvailable()) return false;
-
   try {
     await requestAuthorization(
       [
@@ -40,8 +36,6 @@ export async function requestAppleHealthPermissions(): Promise<boolean> {
 export async function fetchAppleHealthWorkouts(
   sinceDate: Date
 ): Promise<SyncActivityItem[]> {
-  if (!isAppleHealthAvailable()) return [];
-
   const workouts: Workout[] = await queryWorkouts({
     startDate: sinceDate,
     endDate: new Date(),
