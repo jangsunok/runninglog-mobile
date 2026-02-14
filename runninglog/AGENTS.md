@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+**runninglog**는 **Expo** 기반으로 동작하는 모바일 앱을 구현하기 위한 패키지입니다. React Native를 사용하며, mobile-first 패턴·성능·크로스 플랫폼 호환을 우선합니다.
+
+같은 워크스페이스의 **runninglog-backend**는 Django 기반 백엔드 서버이며, API 및 서버 로직을 담당합니다.
 
 ## Documentation Resources
 

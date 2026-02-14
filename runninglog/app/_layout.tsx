@@ -23,8 +23,10 @@ import 'react-native-reanimated';
 import { SimpleToast } from '@/components/simple-toast';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-// 백그라운드 위치 추적 태스크 등록 (앱 로드 시 한 번 필요)
+// 백그라운드 태스크 등록 (앱 로드 시 한 번 필요)
 import '@/services/location/backgroundLocationTask';
+import '@/services/health/backgroundHealthSyncTask';
+import '@/services/health/backgroundSamsungHealthSyncTask';
 
 const toastConfig = {
   error: (params: { text1?: string; text2?: string; type?: string }) => (

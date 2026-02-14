@@ -302,9 +302,7 @@ export default function RunActiveScreen() {
               color={theme.text}
             />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-            Active Run - Map View
-          </Text>
+         
           <View style={styles.statusIcons}>
             {status === 'running' && (
               <View style={styles.liveBadge}>
