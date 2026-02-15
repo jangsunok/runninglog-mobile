@@ -184,6 +184,33 @@ export default function LoginScreen() {
             <Text style={styles.kakaoButtonText}>카카오톡 로그인</Text>
           )}
         </Pressable>
+
+        {__DEV__ && (
+          <>
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: inputBorder }]} />
+              <ThemedText style={styles.dividerText}>DEV</ThemedText>
+              <View style={[styles.dividerLine, { backgroundColor: inputBorder }]} />
+            </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.devButton,
+                pressed && styles.devButtonPressed,
+              ]}
+              onPress={async () => {
+                try {
+                  const { access_token, refresh_token } = await loginWithEmail('test@runhigh.com', 'test1234');
+                  await login(access_token, refresh_token);
+                  router.replace('/(tabs)');
+                } catch (e) {
+                  showErrorToast(e instanceof Error ? e.message : '테스트 로그인 실패');
+                }
+              }}
+            >
+              <Text style={styles.devButtonText}>테스트 계정 로그인 (Dev)</Text>
+            </Pressable>
+          </>
+        )}
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -302,6 +329,22 @@ const styles = StyleSheet.create({
   },
   kakaoButtonText: {
     color: '#191919',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  devButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#262626',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  devButtonPressed: {
+    opacity: 0.9,
+  },
+  devButtonText: {
+    color: '#FAFAFA',
     fontSize: 16,
     fontWeight: '600',
   },

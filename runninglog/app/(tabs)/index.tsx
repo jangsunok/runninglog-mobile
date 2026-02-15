@@ -1,350 +1,366 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
-import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { BrandOrange } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight, Colors, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
+import { getActivities } from '@/lib/api/activities';
+import { getStatisticsSummary } from '@/lib/api/statistics';
+import type { StatisticsSummary } from '@/types/activity';
 
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+// ─── 주간 캘린더 생성 ──────────────────────────────────────────
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
-const POPULAR_CONSULTS = [
-  '장거리 러닝 시 숨이 차요. 호흡법이 궁금해요.',
-  '마라톤 전날 식단 추천 부탁드려요.',
-  '발바닥 물집 예방 방법이 있을까요?',
-  '주말 반팔 러닝 시 자외선 차단 어떻게 하시나요?',
-];
+function getWeekCalendar(runDays: Set<number>) {
+  const today = new Date();
+  const todayDate = today.getDate();
+  const dayOfWeek = today.getDay(); // 0=일
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-const UPCOMING_MARATHONS = [
-  { id: '1', name: '서울 마라톤 2025', date: '2025.03.16', location: '서울' },
-  { id: '2', name: '부산 국제 마라톤', date: '2025.04.06', location: '부산' },
-];
-
-const ALL_MARATHONS = [
-  { id: '1', name: '서울 마라톤 2025', date: '2025.03.16', location: '서울' },
-  { id: '2', name: '부산 국제 마라톤', date: '2025.04.06', location: '부산' },
-  { id: '3', name: '대구 국제 마라톤', date: '2025.04.13', location: '대구' },
-  { id: '4', name: '제주 올레 마라톤', date: '2025.05.18', location: '제주' },
-  { id: '5', name: '인천 공항 Sky 마라톤', date: '2025.06.01', location: '인천' },
-  { id: '6', name: '춘천 마라톤', date: '2025.06.15', location: '춘천' },
-];
-
-function useWeekRunCounts() {
-  return [0, 2, 1, 0, 3, 1, 0];
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + mondayOffset + i);
+    const date = d.getDate();
+    return {
+      label: WEEKDAY_LABELS[i],
+      date,
+      hasRun: runDays.has(date),
+      isToday: date === todayDate && d.getMonth() === today.getMonth(),
+    };
+  });
 }
 
-function ConsultTicker({ onPress }: { onPress: () => void }) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const [index, setIndex] = useState(0);
-  const translateY = useSharedValue(0);
-  const lineHeight = 24;
-  const items = POPULAR_CONSULTS;
-
-  const nextIndex = () => setIndex((i) => (i + 1) % items.length);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      translateY.value = withTiming(-lineHeight, { duration: 400 }, (finished) => {
-        if (finished) {
-          runOnJS(nextIndex)();
-          translateY.value = 0;
-        }
-      });
-    }, 3000);
-    return () => clearInterval(id);
-  }, [translateY]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const textColor = isDark ? '#FAFAFA' : '#0D0D0D';
-
-  return (
-    <Pressable onPress={onPress} style={styles.tickerTouch}>
-      <View style={styles.tickerWrap}>
-        <View style={[styles.tickerWindow, { backgroundColor: isDark ? '#262626' : '#F5F5F5' }]}>
-          <Animated.View style={[{ height: lineHeight * 2 }, animatedStyle]}>
-            <ThemedText style={[styles.tickerLine, { color: textColor }]} numberOfLines={1}>
-              {items[index]}
-            </ThemedText>
-            <ThemedText style={[styles.tickerLine, { color: textColor }]} numberOfLines={1}>
-              {items[(index + 1) % items.length]}
-            </ThemedText>
-          </Animated.View>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
+// ─── 컴포넌트 ────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const weekCounts = useWeekRunCounts();
-  const [allList, setAllList] = useState(ALL_MARATHONS);
-  const loadingRef = useRef(false);
+  const theme = Colors[colorScheme ?? 'light'];
 
-  const searchBg = isDark ? '#262626' : '#F5F5F5';
-  const searchBorder = isDark ? '#404040' : '#E5E5E5';
-  const iconColor = Colors[colorScheme ?? 'light'].icon;
+  const [summary, setSummary] = useState<StatisticsSummary | null>(null);
+  const [runDays, setRunDays] = useState<Set<number>>(new Set());
+  const [aiMessage, setAiMessage] = useState(
+    '오늘 달리기 딱 좋은 날씨인데, 잠깐만 나가서 달리고 오는 건 어때?'
+  );
 
-  const loadMore = useCallback(() => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    setTimeout(() => {
-      setAllList((prev) => [
-        ...prev,
-        ...ALL_MARATHONS.map((m, i) => ({
-          ...m,
-          id: `more-${prev.length + i}`,
-          name: `${m.name} (${prev.length + i + 1})`,
-        })),
+  const today = new Date();
+  const displayDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [sumData, actData] = await Promise.all([
+        getStatisticsSummary(),
+        getActivities({ page: 1, page_size: 50 }),
       ]);
-      loadingRef.current = false;
-    }, 600);
+      setSummary(sumData);
+
+      // 이번 달 달린 날짜 추출
+      const thisMonth = today.getMonth();
+      const thisYear = today.getFullYear();
+      const days = new Set<number>();
+      for (const act of actData.results) {
+        const d = new Date(act.started_at);
+        if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
+          days.add(d.getDate());
+        }
+      }
+      setRunDays(days);
+    } catch {
+      Toast.show({ type: 'error', text1: '데이터를 불러오지 못했어요.' });
+    }
   }, []);
 
-  const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-      const pad = 200;
-      if (contentOffset.y + layoutMeasurement.height >= contentSize.height - pad) {
-        loadMore();
-      }
-    },
-    [loadMore]
-  );
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const weekDays = getWeekCalendar(runDays);
+
+  /** RUN 버튼 누르면 액티브 런 화면으로 이동 */
+  const handleRunPress = () => {
+    router.push('/(tabs)/run/active');
+  };
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={[styles.searchBox, { backgroundColor: searchBg, borderColor: searchBorder }]}>
-          <MaterialIcons name="search" size={20} color={iconColor} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: isDark ? '#FAFAFA' : '#0D0D0D' }]}
-            placeholder="대회명, 지역을 검색해보세요."
-            placeholderTextColor={isDark ? '#737373' : '#a3a3a3'}
-            editable={false}
-          />
-        </View>
-        <Pressable style={styles.notiBtn} hitSlop={12}>
-          <MaterialIcons name="notifications-none" size={24} color={iconColor} />
-        </Pressable>
-      </View>
-
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top, paddingBottom: insets.bottom + 32 },
+        ]}
         showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={200}
       >
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            이번 주 달리기 기록
-          </ThemedText>
+        {/* 날짜 헤더 */}
+        <Text style={[styles.dateText, { color: theme.text }]}>
+          {displayDate}
+        </Text>
+
+        {/* 주간 스트릭 캘린더 */}
+        <View style={[styles.weekCalendar, { backgroundColor: theme.background }]}>
+          {/* 요일 라벨 행 */}
           <View style={styles.weekRow}>
-            {WEEKDAY_LABELS.map((label, i) => (
-              <View key={label} style={styles.dayCell}>
-                <ThemedText style={styles.dayLabel}>{label}</ThemedText>
-                <View style={[styles.countBadge, weekCounts[i] > 0 && styles.countBadgeActive]}>
-                  <ThemedText
-                    style={[
-                      styles.countText,
-                      weekCounts[i] > 0 && { color: '#fff' },
-                    ]}
-                  >
-                    {weekCounts[i]}
-                  </ThemedText>
-                </View>
+            {weekDays.map((day) => (
+              <View key={day.label} style={styles.dayColumn}>
+                <Text style={[styles.dayLabel, { color: theme.textTertiary }]}>
+                  {day.label}
+                </Text>
               </View>
             ))}
           </View>
+          {/* 날짜 원형 행 */}
+          <View style={styles.weekRow}>
+            {weekDays.map((day) => {
+              let bgColor = '#E5E5E5';
+              let textColor = '#737373';
+
+              if (day.hasRun) {
+                bgColor = BrandOrange;
+                textColor = '#FFFFFF';
+              }
+              if (day.isToday && !day.hasRun) {
+                bgColor = '#1A1A1A';
+                textColor = '#FFFFFF';
+              }
+
+              return (
+                <View key={day.date} style={styles.dayColumn}>
+                  <View style={[styles.dateBadge, { backgroundColor: bgColor }]}>
+                    <Text style={[styles.dateNumber, { color: textColor }]}>
+                      {day.date}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            인기 있는 고민상담
-          </ThemedText>
-          <ConsultTicker onPress={() => router.push('/(tabs)/consult')} />
+        {/* 거리 표시 */}
+        <View style={styles.distanceSection}>
+          <Text style={styles.distanceValue}>
+            {summary ? summary.total_distance_km.toFixed(1) : '0'}
+          </Text>
+          <Text style={[styles.distanceUnit, { color: theme.text }]}>km</Text>
         </View>
 
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            참여 예정 마라톤 대회
-          </ThemedText>
-          {UPCOMING_MARATHONS.map((m) => (
-            <Pressable
-              key={m.id}
-              style={[styles.card, { backgroundColor: isDark ? '#262626' : '#F5F5F5' }]}
-            >
-              <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {m.name}
-              </ThemedText>
-              <ThemedText style={styles.cardMeta}>
-                {m.date} · {m.location}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </View>
+        {/* 타이머 표시 */}
+        <Text style={[styles.timerText, { color: theme.text }]}>
+          {summary?.total_duration_display ?? '00:00:00'}
+        </Text>
 
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            마라톤 대회 전체
-          </ThemedText>
-          {allList.map((item) => (
-            <View
-              key={item.id}
-              style={[styles.marathonRow, { borderBottomColor: isDark ? '#262626' : '#E5E5E5' }]}
-            >
-              <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.marathonName}>
-                {item.name}
-              </ThemedText>
-              <ThemedText style={styles.marathonMeta}>
-                {item.date} · {item.location}
-              </ThemedText>
+        {/* 페이스 & 심박수 */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: theme.text }]}>
+              {summary?.average_pace_display ?? '-'}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              평균 페이스
+            </Text>
+          </View>
+          <View style={styles.statItem}>
+            <View style={styles.heartRateRow}>
+              <Text style={styles.heartIcon}>♡</Text>
             </View>
-          ))}
-          <View style={{ height: 40 }} />
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+              심박수 bpm
+            </Text>
+          </View>
         </View>
+
+        {/* AI 페이스메이커 카드 */}
+        <AIPacemakerCard message={aiMessage} style={styles.aiCard} />
+
+        {/* RUN 버튼 */}
+        <View style={styles.runButtonContainer}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.runButtonOuter,
+              pressed && styles.runButtonPressed,
+            ]}
+            onPress={handleRunPress}
+          >
+            <LinearGradient
+              colors={[BrandOrangeLight, BrandOrange]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.runButtonGradient}
+            >
+              <MaterialIcons
+                name="directions-run"
+                size={34}
+                color="#FFFFFF"
+              />
+              <Text style={styles.runButtonText}>RUN</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+
+        {/* FAB 하단 간격 */}
+        <View style={styles.fabSpacer} />
       </ScrollView>
     </ThemedView>
   );
 }
 
+// ─── 스타일 ─────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 12,
-  },
-  searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingLeft: 12,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: 0,
-  },
-  notiBtn: {
-    padding: 4,
+    backgroundColor: '#FFFFFF',
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
   },
-  section: {
-    marginBottom: 28,
+
+  /* 날짜 헤더 */
+  dateText: {
+    fontSize: 28,
+    fontFamily: F.inter700,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
-  sectionTitle: {
-    marginBottom: 12,
+
+  /* 주간 스트릭 캘린더 */
+  weekCalendar: {
+    borderRadius: 16,
+    marginBottom: 32,
+    paddingVertical: 12,
   },
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  dayCell: {
-    alignItems: 'center',
+  dayColumn: {
     flex: 1,
+    alignItems: 'center',
   },
   dayLabel: {
     fontSize: 12,
-    opacity: 0.8,
-    marginBottom: 6,
+    fontFamily: F.inter500,
+    marginBottom: 8,
   },
-  countBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E5E5E5',
+  dateBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countBadgeActive: {
-    backgroundColor: BrandOrange,
+  dateNumber: {
+    fontSize: 15,
+    fontFamily: F.inter600,
   },
-  countText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  tickerTouch: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  tickerWrap: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  tickerWindow: {
-    height: 24,
+
+  /* 거리 표시 */
+  distanceSection: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     justifyContent: 'center',
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  tickerLine: {
-    height: 24,
-    lineHeight: 24,
-    fontSize: 14,
-  },
-  card: {
-    padding: 16,
-    borderRadius: 12,
     marginBottom: 8,
   },
-  cardMeta: {
+  distanceValue: {
+    fontSize: 72,
+    fontFamily: F.mont800,
+    color: BrandOrange,
+    letterSpacing: -2,
+  },
+  distanceUnit: {
+    fontSize: 24,
+    fontFamily: F.inter500,
+    marginLeft: 8,
+  },
+
+  /* 타이머 */
+  timerText: {
+    fontSize: 48,
+    fontFamily: F.mont700,
+    textAlign: 'center',
+    marginBottom: 20,
+    letterSpacing: -1,
+  },
+
+  /* 페이스 & 심박수 */
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 48,
+    marginBottom: 28,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 28,
+    fontFamily: F.mont700,
+  },
+  heartRateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heartIcon: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FF4D6A',
+  },
+  statLabel: {
     fontSize: 13,
-    opacity: 0.8,
     marginTop: 4,
   },
-  marathonRow: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+
+  /* AI 페이스메이커 카드 */
+  aiCard: {
+    marginBottom: 32,
   },
-  marathonName: {
-    marginBottom: 4,
+
+  /* RUN 버튼 */
+  runButtonContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  marathonMeta: {
-    fontSize: 13,
-    opacity: 0.8,
+  runButtonOuter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    shadowColor: '#00000020',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  runButtonGradient: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  runButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.95 }],
+  },
+  runButtonText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: F.inter600,
+    letterSpacing: 1.2,
+    marginTop: -2,
+  },
+
+  /* FAB 하단 간격 */
+  fabSpacer: {
+    height: 80,
   },
 });

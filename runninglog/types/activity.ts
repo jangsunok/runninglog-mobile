@@ -130,7 +130,7 @@ export interface UpdateActivityPayload {
 /** 활동 생성 응답 (상세와 동일 구조) */
 export type CreateActivityResponse = ActivityDetail;
 
-export type DataSource = 'APP' | 'SAMSUNG_HEALTH' | 'APPLE_HEALTH';
+export type DataSource = 'APP' | 'SAMSUNG_HEALTH' | 'APPLE_HEALTH' | 'STRAVA' | 'GARMIN_CONNECT';
 
 /** 동기화 요청 Body */
 export interface SyncActivitiesPayload {

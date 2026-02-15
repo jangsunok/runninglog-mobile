@@ -1,0 +1,4 @@
+[submodule "runninglog-backend"]
+	path = runninglog-backend
+	url = git@github.com:jangsunok/runninglog-backend.git
+	branch = feature/mobile
