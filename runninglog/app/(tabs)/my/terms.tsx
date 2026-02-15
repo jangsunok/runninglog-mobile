@@ -12,7 +12,7 @@ const ITEMS = [
   { label: '서비스 이용약관', route: '/(auth)/privacy-policy' },
   { label: '개인정보 처리방침', route: '/(auth)/privacy-policy' },
   { label: '위치기반서비스 이용약관', route: '/(auth)/privacy-policy' },
-  { label: '오픈소스 라이선스', route: '/(auth)/privacy-policy' },
+  { label: '오픈소스 라이선스', route: '/(tabs)/my/licenses' },
 ];
 
 export default function TermsScreen() {

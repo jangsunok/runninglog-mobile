@@ -323,10 +323,12 @@ function GoalSettingModal({
   const [selectedType, setSelectedType] = useState<GoalType>('distance');
   const [inputValue, setInputValue] = useState('');
 
+  const parsedValue = parseInt(inputValue, 10);
+  const isValid = !!parsedValue && parsedValue > 0;
+
   const handleSubmit = () => {
-    const num = parseInt(inputValue, 10);
-    if (!num || num <= 0) return;
-    onSubmit(selectedType, num);
+    if (!isValid) return;
+    onSubmit(selectedType, parsedValue);
     setInputValue('');
     setSelectedType('distance');
   };
@@ -409,8 +411,9 @@ function GoalSettingModal({
               <Text style={styles.cancelButtonText}>취소</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.submitButton]}
+              style={[styles.modalButton, styles.submitButton, !isValid && styles.submitButtonDisabled]}
               onPress={handleSubmit}
+              disabled={!isValid}
             >
               <Text style={styles.submitButtonText}>설정하기</Text>
             </TouchableOpacity>
@@ -765,6 +768,9 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: BrandOrange,
+  },
+  submitButtonDisabled: {
+    opacity: 0.4,
   },
   submitButtonText: {
     color: '#FFFFFF',
