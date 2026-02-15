@@ -3,7 +3,7 @@ import { Dimensions, Pressable, Share, StyleSheet, Text, View } from 'react-nati
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Medal, Share2, ChevronRight, Trophy } from 'lucide-react-native';
+import { X, Medal, Share2, Trophy } from 'lucide-react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { Easing } from 'react-native-reanimated';
 
@@ -105,9 +105,6 @@ function FunnelButton({
       >
         {label}
       </Text>
-      {variant === 'primary' && (
-        <ChevronRight size={18} color={TEXT_W} style={{ marginLeft: 2 }} />
-      )}
     </Pressable>
   );
 }
