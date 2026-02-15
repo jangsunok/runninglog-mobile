@@ -57,7 +57,7 @@ export default function MyScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -162,9 +162,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
-  headerTitle: { fontSize: 28 },
+  headerTitle: { fontSize: 28, lineHeight: 38 },
   bellWrapper: { width: 22, height: 22 },
   notificationDot: {
     position: 'absolute',
