@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 import { ThemedView } from '@/components/themed-view';
 import { BrandOrange, BrandOrangeLight, Colors, F } from '@/constants/theme';
@@ -72,7 +73,7 @@ export default function HomeScreen() {
       }
       setRunDays(days);
     } catch {
-      // silent
+      Toast.show({ type: 'error', text1: '데이터를 불러오지 못했어요.' });
     }
   }, []);
 

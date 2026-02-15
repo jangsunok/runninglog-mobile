@@ -12,6 +12,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Medals } from '@/constants/assets';
+import Toast from 'react-native-toast-message';
 import { BrandOrange, F } from '@/constants/theme';
 import { getCurrentGoal, createGoal, deleteGoal } from '@/lib/api/goals';
 import { getCurrentAchievements } from '@/lib/api/achievements';
@@ -85,7 +86,7 @@ export default function TrainingScreen() {
       setGoal(goalData);
       setAchievements(achieveData.achievements);
     } catch {
-      // fallback: 빈 상태
+      Toast.show({ type: 'error', text1: '데이터를 불러오지 못했어요.' });
     } finally {
       setLoading(false);
     }
@@ -115,7 +116,7 @@ export default function TrainingScreen() {
       const created = await createGoal({ goal_type: seg.apiKey, target_value: value });
       setGoal(created);
     } catch {
-      // silent
+      Toast.show({ type: 'error', text1: '목표 설정에 실패했어요. 다시 시도해주세요.' });
     }
   };
 
@@ -125,7 +126,7 @@ export default function TrainingScreen() {
       await deleteGoal(goal.id);
       setGoal(null);
     } catch {
-      // silent
+      Toast.show({ type: 'error', text1: '목표 삭제에 실패했어요. 다시 시도해주세요.' });
     }
   };
 
