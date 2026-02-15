@@ -299,6 +299,32 @@ export default function AnalyzeScreen() {
           </View>
         </View>
 
+        {/* ── 메인 메트릭스 ── */}
+        <View style={s.mainMetrics}>
+          <Text style={s.mainMetricsLabel}>누적 거리</Text>
+          <View style={s.mainMetricsRow}>
+            <Text style={s.mainMetricsValue}>
+              {DISTANCE_DATA.values[CURRENT_MONTH_IDX]}
+            </Text>
+            <Text style={s.mainMetricsUnit}>km</Text>
+          </View>
+        </View>
+
+        <View style={s.splitCard}>
+          <View style={s.splitItem}>
+            <Text style={s.splitValue}>{RUN_COUNT_DATA.values[CURRENT_MONTH_IDX]}</Text>
+            <Text style={s.splitLabel}>횟수</Text>
+          </View>
+          <View style={s.splitItem}>
+            <Text style={s.splitValue}>5:12:13</Text>
+            <Text style={s.splitLabel}>누적 시간</Text>
+          </View>
+          <View style={s.splitItem}>
+            <Text style={s.splitValue}>5'24"</Text>
+            <Text style={s.splitLabel}>평균 페이스</Text>
+          </View>
+        </View>
+
         {/* ── 섹션들 ── */}
         <View style={s.sections}>
 
@@ -444,6 +470,33 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 28, fontFamily: F.inter700, color: C.text },
   monthSelector: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   monthText: { fontSize: 16, fontFamily: F.inter600, color: C.text },
+
+  // 메인 메트릭스
+  mainMetrics: {
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  mainMetricsLabel: { fontSize: 12, fontFamily: F.inter500, color: C.textSecondary },
+  mainMetricsRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  mainMetricsValue: { fontSize: 30, fontFamily: F.mont800, color: BrandOrange },
+  mainMetricsUnit: { fontSize: 24, fontFamily: F.inter500, color: C.text },
+
+  // 3열 요약 카드
+  splitCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: C.lightGray,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 16,
+  },
+  splitItem: { alignItems: 'center', gap: 2 },
+  splitValue: { fontSize: 24, fontFamily: F.mont700, color: C.text },
+  splitLabel: { fontSize: 12, fontFamily: F.inter500, color: C.textSecondary },
 
   // 섹션 컨테이너
   sections: { gap: 24, paddingHorizontal: 20, paddingTop: 8 },
