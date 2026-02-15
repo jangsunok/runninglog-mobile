@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { ChevronLeft, ExternalLink } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useCallback, useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -16,7 +16,6 @@ import {
 export default function NotificationSettingsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
   const scheme = colorScheme ?? 'light';
   const c = Colors[scheme];
 
@@ -65,7 +64,7 @@ export default function NotificationSettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: 16 }]}>
         <Pressable onPress={() => router.back()}>
           <ChevronLeft size={24} color={c.text} />
         </Pressable>

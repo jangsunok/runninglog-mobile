@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ChevronLeft, BellOff } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useCallback, useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -18,7 +18,6 @@ import type { Notification } from '@/types/api';
 export default function NotificationsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
   const scheme = colorScheme ?? 'light';
   const c = Colors[scheme];
 
@@ -86,7 +85,7 @@ export default function NotificationsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: 16 }]}>
         <View style={styles.headerLeft}>
           <Pressable onPress={() => router.back()}>
             <ChevronLeft size={24} color={c.text} />

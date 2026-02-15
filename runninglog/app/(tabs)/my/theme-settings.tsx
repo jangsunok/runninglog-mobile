@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -21,7 +21,6 @@ const OPTIONS: { value: ThemeOption; label: string }[] = [
 export default function ThemeSettingsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
   const scheme = colorScheme ?? 'light';
   const c = Colors[scheme];
 
@@ -40,7 +39,7 @@ export default function ThemeSettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: 16 }]}>
         <Pressable onPress={() => router.back()}>
           <ChevronLeft size={24} color={c.text} />
         </Pressable>

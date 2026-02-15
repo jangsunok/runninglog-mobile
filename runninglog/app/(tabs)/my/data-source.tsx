@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Activity, Check, ChevronLeft, Loader2, Zap } from 'lucide-react-native';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import Toast from 'react-native-toast-message';
 
 import { ThemedText } from '@/components/themed-text';
@@ -26,7 +26,6 @@ function formatLastSync(isoString: string | null): string {
 export default function DataSourceScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
   const scheme = colorScheme ?? 'light';
   const c = Colors[scheme];
 
@@ -70,7 +69,7 @@ export default function DataSourceScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: 16 }]}>
         <Pressable onPress={() => router.back()}>
           <ChevronLeft size={24} color={c.text} />
         </Pressable>

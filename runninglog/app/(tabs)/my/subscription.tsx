@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronLeft, ExternalLink, Crown } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,13 +11,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export default function SubscriptionScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
   const scheme = colorScheme ?? 'light';
   const c = Colors[scheme];
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: 16 }]}>
         <Pressable onPress={() => router.back()}>
           <ChevronLeft size={24} color={c.text} />
         </Pressable>
