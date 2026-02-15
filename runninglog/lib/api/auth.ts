@@ -131,4 +131,37 @@ export async function registerUser(data: RegisterRequest): Promise<void> {
   });
 }
 
+/** 프로필 이미지 업로드 — PATCH /v1/mobile/auth/me/ (multipart) */
+export async function uploadProfileImage(imageUri: string): Promise<User> {
+  const { API_BASE_URL } = await import('@/constants/api');
+  const { getAuthToken } = await import('@/lib/api/client');
+
+  const formData = new FormData();
+  const filename = imageUri.split('/').pop() ?? 'profile.jpg';
+  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+  formData.append('profile_image', {
+    uri: imageUri,
+    name: filename,
+    type: mimeType,
+  } as any);
+
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE_URL}${BASE}/me/`, {
+    method: 'PATCH',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(res.status, text, res);
+  }
+
+  return res.json() as Promise<User>;
+}
+
 export { ApiError };

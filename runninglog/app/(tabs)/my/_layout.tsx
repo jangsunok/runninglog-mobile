@@ -17,6 +17,7 @@ export default function MyLayout() {
         <Stack.Screen name="data-source" />
         <Stack.Screen name="notification-settings" />
         <Stack.Screen name="theme-settings" />
+        <Stack.Screen name="profile-settings" />
         <Stack.Screen name="subscription" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="support" />

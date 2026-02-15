@@ -84,7 +84,10 @@ export default function MyScreen() {
               {user?.nickname ?? '러너'}
             </ThemedText>
           </View>
-          <Pressable style={[styles.profileBtn, { backgroundColor: c.lightGray }]}>
+          <Pressable
+            style={[styles.profileBtn, { backgroundColor: c.lightGray }]}
+            onPress={() => router.push('/(tabs)/my/profile-settings')}
+          >
             <ThemedText style={[styles.profileBtnText, { color: c.textSecondary }]}>
               프로필 설정
             </ThemedText>
