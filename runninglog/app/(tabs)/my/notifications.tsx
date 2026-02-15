@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ChevronLeft, BellOff } from 'lucide-react-native';
-
+import Toast from 'react-native-toast-message';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -29,7 +29,7 @@ export default function NotificationsScreen() {
       const data = await getNotifications(1, 50);
       setNotifications(data.results);
     } catch {
-      // 오류 시 빈 목록
+      Toast.show({ type: 'error', text1: '알림을 불러오지 못했어요.' });
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export default function NotificationsScreen() {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch {
-      // silent
+      Toast.show({ type: 'error', text1: '알림 읽음 처리에 실패했어요.' });
     }
   };
 
@@ -56,7 +56,7 @@ export default function NotificationsScreen() {
           prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n))
         );
       } catch {
-        // silent
+        Toast.show({ type: 'error', text1: '알림 읽음 처리에 실패했어요.' });
       }
     }
     if (item.action_url) {

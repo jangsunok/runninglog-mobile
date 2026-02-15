@@ -31,7 +31,7 @@ export default function NotificationSettingsScreen() {
       setMarketingEnabled(data.marketing_enabled);
       setNightPushEnabled(data.night_push_enabled);
     } catch {
-      // 기본값 유지
+      Toast.show({ type: 'error', text1: '설정을 불러오지 못했어요.' });
     } finally {
       setLoading(false);
     }

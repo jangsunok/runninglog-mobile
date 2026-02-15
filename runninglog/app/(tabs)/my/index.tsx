@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Bell, ChevronRight, Gem, Headphones, LogOut, Plug, SunMoon, FileText, UserX, User as UserIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -46,7 +47,7 @@ export default function MyScreen() {
       setUser(userData);
       setUnreadCount(count);
     } catch {
-      // silent
+      Toast.show({ type: 'error', text1: '정보를 불러오지 못했어요.' });
     }
   }, []);
 
