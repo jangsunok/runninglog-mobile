@@ -145,6 +145,18 @@ export default function MyScreen() {
           </Pressable>
         </View>
 
+        {/* 테스트: 월간 결산 */}
+        <View style={styles.reportBtnSection}>
+          <Pressable
+            style={styles.reportBtn}
+            onPress={() => router.push('/(tabs)/my/monthly-report')}
+          >
+            <ThemedText style={styles.reportBtnText}>
+              테스트 결산 확인하기
+            </ThemedText>
+          </Pressable>
+        </View>
+
         {/* Version */}
         <View style={styles.versionSection}>
           <ThemedText style={[styles.versionText, { color: c.textTertiary }]}>
@@ -225,4 +237,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   versionText: { fontSize: 13 },
+  reportBtnSection: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  reportBtn: {
+    backgroundColor: BrandOrange,
+    borderRadius: 12,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: F.inter700,
+  },
 });

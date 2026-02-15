@@ -21,6 +21,7 @@ export default function MyLayout() {
         <Stack.Screen name="terms" />
         <Stack.Screen name="support" />
         <Stack.Screen name="licenses" />
+        <Stack.Screen name="monthly-report" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack>
     </SafeAreaView>
   );
