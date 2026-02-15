@@ -3,11 +3,13 @@
  * - 네이버 지도 + GPS 경로, 거리/시간/페이스
  * - 위치 권한 온보딩 및 거절 시 설정 이동
  * - 일시정지/재개/종료
- * - 다크/라이트 테마 지원
+ * - 전체 화면 지도 + 블러 오버레이 UI
  */
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useNavigation, usePreventRemove } from '@react-navigation/native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -36,13 +38,6 @@ import {
 import * as Location from 'expo-location';
 import type { RunRecord } from '@/types/run';
 import { useRunStore } from '@/stores/runStoreSelectors';
-
-let LinearGradient: any = null;
-try {
-  LinearGradient = require('expo-linear-gradient').LinearGradient;
-} catch {
-  // fallback in render
-}
 
 function formatTime(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -253,8 +248,6 @@ export default function RunActiveScreen() {
   const coordinates = currentSession?.coordinates ?? [];
   const distanceKm = liveMetrics.distanceMeters / 1000;
   const paceStr = formatPace(liveMetrics.paceMinPerKm);
-  const pauseButtonBg = isDark ? '#374151' : theme.lightGray;
-  const gradientEnd = theme.mapDark;
 
   const startPauseLabel =
     status === 'idle' ? '시작' : status === 'paused' ? '재개' : '일시중단';
@@ -262,69 +255,50 @@ export default function RunActiveScreen() {
     status === 'idle' || status === 'paused' ? 'play-arrow' : 'pause';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* ── Map Section ─────────────────────────────── */}
-      <View style={[styles.mapSection, { backgroundColor: theme.mapDark }]}>
-        <ActiveRunMapView
-          coordinates={coordinates}
-          isFollowingUser={status === 'running'}
-          style={styles.mapFill}
-        />
-        {LinearGradient ? (
-          <LinearGradient
-            colors={[`rgba(31,41,55,0)`, gradientEnd]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.mapGradient}
-          />
-        ) : (
-          <View style={[styles.mapGradientFallback, { backgroundColor: `${gradientEnd}66` }]} />
-        )}
+    <View style={styles.container}>
+      {/* ── 전체 화면 지도 ─────────────────────────── */}
+      <ActiveRunMapView
+        coordinates={coordinates}
+        isFollowingUser={status === 'running'}
+        style={StyleSheet.absoluteFill}
+      />
 
-        {/* Header: back + title + LIVE + GPS */}
-        <View
-          style={[
-            styles.headerBar,
-            {
-              paddingTop: Math.max(insets.top, 16),
-              backgroundColor: isDark ? 'rgba(13,13,13,0.6)' : 'rgba(245,245,245,0.85)',
-            },
-          ]}
+      {/* ── 상단 그라디언트 ─────────────────────────── */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.53)', 'transparent']}
+        style={[styles.topGradient, { height: insets.top + 90 }]}
+      />
+
+      {/* ── 헤더: 뒤로가기 + LIVE + GPS ────────────── */}
+      <View style={[styles.headerBar, { top: insets.top + 6 }]}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={12}
+          style={styles.headerBack}
         >
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={12}
-            style={styles.headerBack}
-          >
-            <MaterialIcons
-              name="arrow-back"
-              size={24}
-              color={theme.text}
-            />
-          </Pressable>
-         
-          <View style={styles.statusIcons}>
-            {status === 'running' && (
-              <View style={styles.liveBadge}>
+          <MaterialIcons name="chevron-left" size={28} color="#FFFFFF" />
+        </Pressable>
+
+        <View style={styles.headerRight}>
+          {status === 'running' && (
+            <View style={styles.blurBadge}>
+              <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+              <View style={styles.liveBadgeInner}>
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
-            )}
-            <Pressable
-              onPress={
-                gpsEnabled === false
-                  ? () => openAppSettings()
-                  : undefined
-              }
-              style={[
-                styles.gpsBadge,
-                gpsEnabled === false && styles.gpsBadgeDisabled,
-              ]}
-            >
+            </View>
+          )}
+          <Pressable
+            onPress={gpsEnabled === false ? () => openAppSettings() : undefined}
+            style={styles.blurBadge}
+          >
+            <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.gpsBadgeInner}>
               <MaterialIcons
                 name="gps-fixed"
                 size={14}
-                color={gpsEnabled === false ? '#9CA3AF' : '#FFFFFF'}
+                color={gpsEnabled === false ? '#9CA3AF' : '#00FF88'}
               />
               <Text
                 style={[
@@ -334,121 +308,105 @@ export default function RunActiveScreen() {
               >
                 GPS
               </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Metrics overlay (지도 하단 반투명 카드) */}
-        <View
-          style={[
-            styles.metricsOverlay,
-            {
-              backgroundColor: isDark ? 'rgba(13,13,13,0.85)' : 'rgba(245,245,245,0.9)',
-            },
-          ]}
-        >
-          <View style={styles.mainMetrics}>
-            <Text style={styles.distanceValue}>{distanceKm.toFixed(2)}</Text>
-            <Text style={[styles.distanceLabel, { color: theme.text }]}>km</Text>
-          </View>
-          <Text style={[styles.timerText, { color: theme.text }]}>
-            {formatTime(displaySeconds)}
-          </Text>
-          <View style={styles.secondaryMetrics}>
-            <View style={styles.metricItem}>
-              <Text style={[styles.metricValue, { color: theme.text }]}>{paceStr}</Text>
-              <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>페이스</Text>
             </View>
-            <View style={styles.metricItem}>
-              <View style={styles.heartValueRow}>
-                <MaterialIcons name="favorite" size={20} color={HeartRed} />
-                {/* 2차: HealthKit / Health Connect 연동 시 실시간 심박수 표시 */}
-                <Text style={[styles.metricValue, { color: theme.text }]}> --</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* ── 스탯 오버레이 (블러 카드) ─────────────── */}
+      <View
+        style={[styles.overlayContent, { top: insets.top + 52 }]}
+        pointerEvents="box-none"
+      >
+        <View style={styles.statsOverlayWrap}>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.statsContent}>
+            <View style={styles.distanceRow}>
+              <Text style={styles.distanceValue}>{distanceKm.toFixed(2)}</Text>
+              <Text style={styles.distanceUnit}>km</Text>
+            </View>
+            <Text style={styles.timeValue}>{formatTime(displaySeconds)}</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{paceStr}</Text>
+                <Text style={styles.statLabel}>페이스</Text>
               </View>
-              <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>심박수</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Split Notification (예시: 1km 구간 시 연출 가능) */}
-        {showSplit && (
-          <View style={[styles.splitCard, { backgroundColor: theme.lightGray }]}>
-            <View style={styles.splitHeader}>
-              <View style={styles.splitTitle}>
-                <View style={styles.splitBadge}>
-                  <Text style={styles.splitBadgeText}>1 km</Text>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <View style={styles.hrValueRow}>
+                  <MaterialIcons name="favorite" size={20} color={HeartRed} />
+                  <Text style={styles.statValue}> --</Text>
                 </View>
-                <Text style={[styles.splitTitleText, { color: theme.text }]}>스플릿 완료!</Text>
+                <Text style={styles.statLabel}>심박수</Text>
               </View>
-              <Pressable onPress={handleDismissSplit} hitSlop={12}>
-                <MaterialIcons name="close" size={20} color={theme.textSecondary} />
-              </Pressable>
             </View>
-            <View style={styles.splitMetrics}>
-              <View style={styles.splitMetricItem}>
-                <Text style={styles.splitPaceValue}>{paceStr}</Text>
-                <Text style={[styles.splitPaceLabel, { color: theme.textSecondary }]}>이번 구간 페이스</Text>
+          </View>
+        </View>
+
+        {/* 스플릿 알림 */}
+        {showSplit && (
+          <View style={styles.splitCard}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.splitContent}>
+              <View style={styles.splitHeader}>
+                <View style={styles.splitTitle}>
+                  <View style={styles.splitBadge}>
+                    <Text style={styles.splitBadgeText}>1 km</Text>
+                  </View>
+                  <Text style={styles.splitTitleText}>스플릿 완료!</Text>
+                </View>
+                <Pressable onPress={handleDismissSplit} hitSlop={12}>
+                  <MaterialIcons name="close" size={20} color="rgba(255,255,255,0.67)" />
+                </Pressable>
               </View>
-              <View style={styles.splitMetricItem}>
-                <Text style={[styles.splitAvgValue, { color: theme.text }]}>{paceStr}</Text>
-                <Text style={[styles.splitPaceLabel, { color: theme.textSecondary }]}>평균 페이스</Text>
+              <View style={styles.splitMetrics}>
+                <View style={styles.splitMetricItem}>
+                  <Text style={styles.splitPaceValue}>{paceStr}</Text>
+                  <Text style={styles.splitLabel}>이번 구간 페이스</Text>
+                </View>
+                <View style={styles.splitMetricItem}>
+                  <Text style={styles.splitAvgValue}>{paceStr}</Text>
+                  <Text style={styles.splitLabel}>평균 페이스</Text>
+                </View>
               </View>
             </View>
           </View>
         )}
       </View>
 
-      {/* ── Button Section ──────────────────────────── */}
+      {/* ── 하단 그라디언트 ─────────────────────────── */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.53)']}
+        style={styles.bottomGradient}
+      />
+
+      {/* ── 버튼 영역 ──────────────────────────────── */}
       <View
         style={[
-          styles.buttonSection,
-          {
-            paddingBottom: Math.max(insets.bottom, 48),
-            backgroundColor: theme.background,
-          },
+          styles.buttonContainer,
+          { bottom: Math.max(insets.bottom, 16) + 24 },
         ]}
       >
         <Pressable
           style={({ pressed }) => [
-            styles.actionButton,
-            { backgroundColor: pauseButtonBg },
+            styles.pauseButton,
             pressed && { opacity: 0.8 },
           ]}
           onPress={handlePauseToggle}
         >
-          <MaterialIcons
-            name={startPauseIcon}
-            size={24}
-            color={isDark ? '#FFFFFF' : theme.text}
-          />
-          <Text
-            style={[
-              styles.actionButtonText,
-              { color: isDark ? '#FFFFFF' : theme.text },
-            ]}
-          >
-            {startPauseLabel}
-          </Text>
+          <View style={styles.buttonIconCircle}>
+            <MaterialIcons name={startPauseIcon} size={16} color="#FFFFFF" />
+          </View>
+          <Text style={styles.buttonText}>{startPauseLabel}</Text>
         </Pressable>
         <EndRunButton onComplete={handleStop} disabled={saving} />
       </View>
 
+      {/* ── 저장 오버레이 ──────────────────────────── */}
       {saving && (
         <View style={StyleSheet.absoluteFill} pointerEvents="box-only">
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 10,
-              },
-            ]}
-          >
-            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '600' }}>
-              저장 중...
-            </Text>
+          <View style={styles.savingOverlay}>
+            <Text style={styles.savingText}>저장 중...</Text>
           </View>
         </View>
       )}
@@ -459,6 +417,7 @@ export default function RunActiveScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0D0D0D',
   },
   centered: {
     justifyContent: 'center',
@@ -468,153 +427,158 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  mapSection: {
-    height: 320,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  mapFill: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  mapGradient: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-  mapGradientFallback: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-
-  headerBar: {
+  /* 상단 그라디언트 */
+  topGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 1,
+  },
+
+  /* 헤더 */
+  headerBar: {
+    position: 'absolute',
+    left: 12,
+    right: 16,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    zIndex: 4,
-    gap: 12,
+    zIndex: 5,
   },
   headerBack: {
     padding: 4,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  statusIcons: {
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  liveBadge: {
+
+  /* 블러 뱃지 (LIVE / GPS) */
+  blurBadge: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  liveBadgeInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(239,68,68,0.9)',
-    paddingHorizontal: 8,
+    gap: 6,
     paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: HeartRed,
   },
   liveText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    color: HeartRed,
+    fontSize: 11,
+    fontWeight: '700',
   },
-  gpsBadge: {
+  gpsBadgeInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,128,0,0.7)',
-    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
   },
   gpsText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  gpsBadgeDisabled: {
-    backgroundColor: 'rgba(107,114,128,0.8)',
+    color: '#00FF88',
+    fontSize: 11,
+    fontWeight: '700',
   },
   gpsTextDisabled: {
     color: '#9CA3AF',
   },
 
-  metricsOverlay: {
+  /* 오버레이 컨텐츠 컨테이너 */
+  overlayContent: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    left: 20,
+    right: 20,
     gap: 12,
-    zIndex: 2,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    zIndex: 4,
   },
-  mainMetrics: {
+
+  /* 스탯 오버레이 카드 */
+  statsOverlayWrap: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  statsContent: {
+    padding: 20,
+    paddingHorizontal: 24,
+    gap: 16,
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 4,
   },
   distanceValue: {
-    fontSize: 56,
+    fontSize: 64,
     fontWeight: '800',
     color: BrandOrange,
+    lineHeight: 68,
   },
-  distanceLabel: {
-    fontSize: 20,
+  distanceUnit: {
+    fontSize: 22,
     fontWeight: '500',
+    color: 'rgba(255,255,255,0.67)',
+    lineHeight: 28,
+    marginBottom: 4,
   },
-  timerText: {
+  timeValue: {
     fontSize: 40,
     fontWeight: '700',
-    letterSpacing: -1,
+    color: '#FFFFFF',
   },
-  secondaryMetrics: {
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 32,
     width: '100%',
   },
-  metricItem: {
+  statItem: {
     alignItems: 'center',
     gap: 4,
   },
-  metricValue: {
+  statValue: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
-  heartValueRow: {
+  statLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.67)',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.19)',
+  },
+  hrValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  metricLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    gap: 4,
   },
 
+  /* 스플릿 카드 */
   splitCard: {
-    position: 'absolute',
-    left: 24,
-    width: 342,
-    top: 200,
     borderRadius: 16,
+    overflow: 'hidden',
+  },
+  splitContent: {
     padding: 16,
     gap: 12,
-    zIndex: 5,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   splitHeader: {
     flexDirection: 'row',
@@ -641,6 +605,7 @@ const styles = StyleSheet.create({
   splitTitleText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   splitMetrics: {
     flexDirection: 'row',
@@ -658,35 +623,69 @@ const styles = StyleSheet.create({
   splitAvgValue: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
-  splitPaceLabel: {
+  splitLabel: {
     fontSize: 12,
     fontWeight: '500',
+    color: 'rgba(255,255,255,0.67)',
   },
 
-  buttonSection: {
+  /* 하단 그라디언트 */
+  bottomGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    zIndex: 1,
+  },
+
+  /* 버튼 */
+  buttonContainer: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
     flexDirection: 'row',
     gap: 16,
-    justifyContent: 'center',
-    paddingTop: 24,
-    paddingHorizontal: 32,
-    paddingBottom: 48,
+    height: 60,
+    zIndex: 5,
   },
-  actionButton: {
+  pauseButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 56,
+    backgroundColor: '#374151',
     borderRadius: 16,
     gap: 8,
   },
-  stopButton: {
-    backgroundColor: BrandOrange,
+  buttonIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  actionButtonText: {
+  buttonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+
+  /* 저장 오버레이 */
+  savingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  savingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

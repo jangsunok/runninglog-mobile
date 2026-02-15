@@ -65,7 +65,7 @@
       [
         "@mj-studio/react-native-naver-map",
         {
-          "clientId": "1yvcnrf7zy"
+          "client_id": "1yvcnrf7zy"
         }
       ],
       [

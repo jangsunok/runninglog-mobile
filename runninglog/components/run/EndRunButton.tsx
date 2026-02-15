@@ -127,7 +127,9 @@ export function EndRunButton({
           </View>
         </View>
       ) : (
-        <MaterialIcons name="stop" size={24} color="#FFFFFF" />
+        <View style={styles.iconCircle}>
+          <MaterialIcons name="stop" size={14} color="#FFFFFF" />
+        </View>
       )}
       <Text style={styles.label}>종료</Text>
     </Pressable>
@@ -140,10 +142,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 56,
     borderRadius: 16,
     gap: 8,
     backgroundColor: BrandOrange,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   circleWrap: {
     width: SIZE,
@@ -167,7 +177,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
   },
 });
