@@ -6,10 +6,13 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BrandOrange, BrandOrangeLight, C, F } from '@/constants/theme';
+import { Bell } from 'lucide-react-native';
+import { BrandOrange, BrandOrangeLight, Colors, C, F } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getActivities } from '@/lib/api/activities';
 import { getStatisticsSummary } from '@/lib/api/statistics';
 import type { ActivityListItem, StatisticsSummary } from '@/types/activity';
@@ -29,10 +32,10 @@ function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-/** 해당 월 1일의 요일 (0=일요일) — 월요일 시작 캘린더 */
+/** 해당 월 1일의 요일 (0=일요일) — 일요일 시작 캘린더 */
 function getFirstDayOfMonthMon(year: number, month: number): number {
   const day = new Date(year, month - 1, 1).getDay(); // 0=일요일
-  return day === 0 ? 6 : day - 1; // 0=월요일
+  return day; // 0=일요일 (그대로 반환)
 }
 
 /** 달린 날인지 확인 — runDates 맵 기반 */
@@ -52,44 +55,51 @@ function isToday(year: number, month: number, day: number): boolean {
   return now.getFullYear() === year && now.getMonth() + 1 === month && now.getDate() === day;
 }
 
-/** 주어진 날짜가 포함된 주의 월요일 구하기 */
-function getWeekMonday(date: Date): Date {
+/** 주어진 날짜가 포함된 주의 일요일 구하기 */
+function getWeekSunday(date: Date): Date {
   const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
+  const day = d.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+  const diff = -day; // 일요일까지의 차이 (일요일이면 0, 월요일이면 -1, ..., 토요일이면 -6)
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-/** 해당 날짜가 그 달의 몇 주차인지 (월요일 시작) */
+/** 해당 날짜가 그 달의 몇 주차인지 (일요일 시작) */
 function getWeekOfMonth(date: Date): number {
   const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const firstMonday = getWeekMonday(firstOfMonth);
-  if (firstMonday.getMonth() < firstOfMonth.getMonth() || firstMonday.getFullYear() < firstOfMonth.getFullYear()) {
-    firstMonday.setDate(firstMonday.getDate() + 7);
+  const firstSunday = getWeekSunday(firstOfMonth);
+  if (firstSunday.getMonth() < firstOfMonth.getMonth() || firstSunday.getFullYear() < firstOfMonth.getFullYear()) {
+    firstSunday.setDate(firstSunday.getDate() + 7);
   }
-  const monday = getWeekMonday(date);
-  const weekNum = Math.floor((monday.getTime() - firstMonday.getTime()) / (7 * 86400000)) + 1;
+  const sunday = getWeekSunday(date);
+  const weekNum = Math.floor((sunday.getTime() - firstSunday.getTime()) / (7 * 86400000)) + 1;
   return Math.max(1, weekNum);
 }
 
-// 월요일 시작 (pen 디자인 기준)
-const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+// 일요일 시작
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+/** 기록 이동 가능 범위: 2025-01-01 ~ 오늘(미래 불가) */
+const MIN_YEAR = 2025;
+const MIN_DATE = new Date(MIN_YEAR, 0, 1);
 
 // ═════════════════════════════════════════════
 // 메인 컴포넌트
 // ═════════════════════════════════════════════
 export default function CalendarScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
 
   // 상태
-  const [viewMode, setViewMode] = useState<ViewMode>('monthly');
+  const [viewMode, setViewMode] = useState<ViewMode>('weekly');
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
-  const [weekMonday, setWeekMonday] = useState(() => getWeekMonday(now));
+  const [weekSunday, setWeekSunday] = useState(() => getWeekSunday(now));
 
   // API 데이터
   const [activities, setActivities] = useState<ActivityListItem[]>([]);
@@ -143,16 +153,16 @@ export default function CalendarScreen() {
 
   // 주간 네비게이션
   const goToPrevWeek = useCallback(() => {
-    setWeekMonday((m) => {
-      const d = new Date(m);
+    setWeekSunday((s) => {
+      const d = new Date(s);
       d.setDate(d.getDate() - 7);
       return d;
     });
   }, []);
 
   const goToNextWeek = useCallback(() => {
-    setWeekMonday((m) => {
-      const d = new Date(m);
+    setWeekSunday((s) => {
+      const d = new Date(s);
       d.setDate(d.getDate() + 7);
       return d;
     });
@@ -162,23 +172,51 @@ export default function CalendarScreen() {
   const goToPrevYear = useCallback(() => setCurrentYear((y) => y - 1), []);
   const goToNextYear = useCallback(() => setCurrentYear((y) => y + 1), []);
 
+  // 이동 가능 범위: 2025년 ~ 오늘 (미래·2025 이전 불가), 모드별 이전/다음 가능 여부
+  const todayYear = now.getFullYear();
+  const todayMonth = now.getMonth() + 1;
+  const minWeekSunday = useMemo(() => getWeekSunday(MIN_DATE), []);
+
+  const navBounds = useMemo(() => {
+    const prevWeekSunday = new Date(weekSunday);
+    prevWeekSunday.setDate(prevWeekSunday.getDate() - 7);
+    const nextWeekSunday = new Date(weekSunday);
+    nextWeekSunday.setDate(nextWeekSunday.getDate() + 7);
+    const thisWeekSunday = getWeekSunday(now);
+
+    return {
+      weekly: {
+        canGoPrev: prevWeekSunday.getTime() >= minWeekSunday.getTime(),
+        canGoNext: nextWeekSunday.getTime() <= thisWeekSunday.getTime(),
+      },
+      monthly: {
+        canGoPrev: currentYear > MIN_YEAR || (currentYear === MIN_YEAR && currentMonth > 1),
+        canGoNext: currentYear < todayYear || (currentYear === todayYear && currentMonth < todayMonth),
+      },
+      yearly: {
+        canGoPrev: currentYear > MIN_YEAR,
+        canGoNext: currentYear < todayYear,
+      },
+    };
+  }, [weekSunday, currentYear, currentMonth, todayYear, todayMonth, minWeekSunday, now]);
+
   // 주간 뷰 데이터
   const weekDays = useMemo(() => {
     const days: { day: number; month: number; year: number }[] = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(weekMonday);
+      const d = new Date(weekSunday);
       d.setDate(d.getDate() + i);
       days.push({ day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() });
     }
     return days;
-  }, [weekMonday]);
+  }, [weekSunday]);
 
   const weekLabel = useMemo(() => {
-    const wom = getWeekOfMonth(weekMonday);
-    return `${weekMonday.getFullYear()}년 ${weekMonday.getMonth() + 1}월 ${wom}주차`;
-  }, [weekMonday]);
+    const wom = getWeekOfMonth(weekSunday);
+    return `${weekSunday.getFullYear()}년 ${weekSunday.getMonth() + 1}월 ${wom}주차`;
+  }, [weekSunday]);
 
-  // 월간 캘린더 그리드 데이터 (월요일 시작)
+  // 월간 캘린더 그리드 데이터 (일요일 시작)
   const monthGrid = useMemo(() => {
     const firstDay = getFirstDayOfMonthMon(currentYear, currentMonth);
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
@@ -251,11 +289,50 @@ export default function CalendarScreen() {
     });
   }, [currentYear]);
 
+  // 테마별 동적 스타일 (다크/라이트 대비·가독성)
+  const themeStyles = useMemo(
+    () => ({
+      container: { backgroundColor: theme.background },
+      headerTitle: { color: theme.text },
+      calendarCard: { backgroundColor: theme.background },
+      segmentContainer: { backgroundColor: theme.surface },
+      segmentButtonActive: {
+        backgroundColor: isDark ? BrandOrange : '#FFFFFF',
+      },
+      segmentTextActive: {
+        color: isDark ? '#FFFFFF' : BrandOrange,
+        fontFamily: F.inter600,
+      },
+      segmentTextInactive: { color: theme.textTertiary },
+      navLabel: { color: theme.text },
+      weekdayText: { color: theme.textTertiary },
+      dayBadgeEmpty: { backgroundColor: theme.lightGray },
+      dayTextCurrent: { color: theme.text },
+      dayTextOutside: { color: theme.textTertiary },
+      summaryLabel: { color: theme.text },
+      summaryAnalyzeButton: {
+        backgroundColor: isDark ? theme.surface : '#F9FAFB',
+        borderColor: theme.border,
+      },
+      summaryAnalyzeBtnText: { color: theme.textSecondary },
+      bigDistanceLabel: { color: theme.textSecondary },
+      bigDistanceUnit: { color: theme.text },
+      statsCard: { backgroundColor: theme.lightGray },
+      statValue: { color: BrandOrange },
+      statLabel: { color: theme.textSecondary },
+      detailTitle: { color: theme.text },
+      recordMain: { color: theme.text },
+      recordDate: { color: theme.textSecondary },
+      recordDivider: { backgroundColor: theme.border },
+    }),
+    [theme, isDark]
+  );
+
   // ─────────────────────────────────────────
   // 세그먼트 컨트롤 (pen: pill 스타일)
   // ─────────────────────────────────────────
   const renderSegmentControl = () => (
-    <View style={styles.segmentContainer}>
+    <View style={[styles.segmentContainer, themeStyles.segmentContainer]}>
       {([
         { key: 'weekly' as ViewMode, label: '주간' },
         { key: 'monthly' as ViewMode, label: '월간' },
@@ -267,7 +344,7 @@ export default function CalendarScreen() {
             key={key}
             style={[
               styles.segmentButton,
-              isActive && styles.segmentButtonActive,
+              isActive && [styles.segmentButtonActive, themeStyles.segmentButtonActive],
             ]}
             onPress={() => setViewMode(key)}
             activeOpacity={0.7}
@@ -275,7 +352,7 @@ export default function CalendarScreen() {
             <Text
               style={[
                 styles.segmentText,
-                isActive ? styles.segmentTextActive : styles.segmentTextInactive,
+                isActive ? themeStyles.segmentTextActive : themeStyles.segmentTextInactive,
               ]}
             >
               {label}
@@ -287,12 +364,13 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // 네비게이션 (모드별 분기)
+  // 네비게이션 (모드별 분기, 2025~오늘 범위 외 이동 불가 시 화살표 비노출)
   // ─────────────────────────────────────────
   const renderNavigation = () => {
     let label = '';
     let onPrev: () => void;
     let onNext: () => void;
+    const bounds = navBounds[viewMode];
 
     if (viewMode === 'weekly') {
       label = weekLabel;
@@ -308,15 +386,32 @@ export default function CalendarScreen() {
       onNext = goToNextMonth;
     }
 
+    const navButtonSize = 40;
     return (
       <View style={styles.navigationRow}>
-        <TouchableOpacity onPress={onPrev} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={24} color={C.textSecondary} />
-        </TouchableOpacity>
-        <Text style={styles.navLabel}>{label}</Text>
-        <TouchableOpacity onPress={onNext} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-forward" size={24} color={C.textSecondary} />
-        </TouchableOpacity>
+        {bounds.canGoPrev ? (
+          <TouchableOpacity
+            onPress={onPrev}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{ width: navButtonSize, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="chevron-back" size={24} color={theme.textSecondary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: navButtonSize }} />
+        )}
+        <Text style={[styles.navLabel, themeStyles.navLabel]}>{label}</Text>
+        {bounds.canGoNext ? (
+          <TouchableOpacity
+            onPress={onNext}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{ width: navButtonSize, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: navButtonSize }} />
+        )}
       </View>
     );
   };
@@ -328,7 +423,7 @@ export default function CalendarScreen() {
     <View style={styles.weekdayRow}>
       {WEEKDAY_LABELS.map((label) => (
         <View key={label} style={styles.weekdayCell}>
-          <Text style={styles.weekdayText}>{label}</Text>
+          <Text style={[styles.weekdayText, themeStyles.weekdayText]}>{label}</Text>
         </View>
       ))}
     </View>
@@ -352,15 +447,15 @@ export default function CalendarScreen() {
           style={[
             styles.dayBadge,
             hasRun && styles.dayBadgeRun,
-            !hasRun && isCurrentMonth && !todayFlag && styles.dayBadgeEmpty,
+            !hasRun && isCurrentMonth && !todayFlag && [styles.dayBadgeEmpty, themeStyles.dayBadgeEmpty],
             todayFlag && !hasRun && styles.dayBadgeToday,
           ]}
         >
           <Text
             style={[
               styles.dayText,
-              !isCurrentMonth && styles.dayTextOutside,
-              isCurrentMonth && styles.dayTextCurrent,
+              !isCurrentMonth && themeStyles.dayTextOutside,
+              isCurrentMonth && themeStyles.dayTextCurrent,
               hasRun && styles.dayTextRun,
               todayFlag && !hasRun && styles.dayTextToday,
             ]}
@@ -388,14 +483,14 @@ export default function CalendarScreen() {
                 style={[
                   styles.dayBadge,
                   hasRun && styles.dayBadgeRun,
-                  !hasRun && !todayFlag && styles.dayBadgeEmpty,
+                  !hasRun && !todayFlag && [styles.dayBadgeEmpty, themeStyles.dayBadgeEmpty],
                   todayFlag && !hasRun && styles.dayBadgeToday,
                 ]}
               >
                 <Text
                   style={[
                     styles.dayText,
-                    styles.dayTextCurrent,
+                    themeStyles.dayTextCurrent,
                     hasRun && styles.dayTextRun,
                     todayFlag && !hasRun && styles.dayTextToday,
                   ]}
@@ -461,8 +556,8 @@ export default function CalendarScreen() {
           {[0, 1].map((colIdx) => {
             const grid = yearGrids[rowIdx * 2 + colIdx];
             return (
-              <View key={colIdx} style={yrS.monthCard}>
-                <Text style={yrS.monthTitle}>{MONTH_NAMES[grid.month - 1]}</Text>
+              <View key={colIdx} style={[yrS.monthCard, { borderColor: theme.border }]}>
+                <Text style={[yrS.monthTitle, { color: theme.text }]}>{MONTH_NAMES[grid.month - 1]}</Text>
                 <View style={yrS.miniGrid}>
                   {grid.weeks.map((week, wi) => (
                     <View key={wi} style={yrS.miniWeekRow}>
@@ -476,13 +571,13 @@ export default function CalendarScreen() {
                             key={di}
                             style={[
                               yrS.miniDay,
-                              { backgroundColor: hasRun ? BrandOrange : COLOR_SURFACE_SUBTLE },
+                              { backgroundColor: hasRun ? BrandOrange : theme.surface },
                             ]}
                           >
                             <Text
                               style={[
                                 yrS.miniDayText,
-                                hasRun && yrS.miniDayTextRun,
+                                { color: hasRun ? '#FFFFFF' : theme.text },
                               ]}
                             >
                               {day}
@@ -507,38 +602,38 @@ export default function CalendarScreen() {
   const renderSummarySection = () => (
     <View style={styles.summarySection}>
       <View style={styles.summaryHeader}>
-        <Text style={styles.summaryLabel}>전체 기록</Text>
+        <Text style={[styles.summaryLabel, themeStyles.summaryLabel]}>전체 기록</Text>
         <TouchableOpacity
-          style={styles.analyzeButton}
+          style={[styles.analyzeButton, themeStyles.summaryAnalyzeButton]}
           onPress={() => router.push('/analyze')}
           activeOpacity={0.7}
         >
-          <Ionicons name="bar-chart-outline" size={16} color={C.textSecondary} />
-          <Text style={styles.analyzeBtnText}>분석보기</Text>
+          <Ionicons name="bar-chart-outline" size={16} color={theme.textSecondary} />
+          <Text style={[styles.analyzeBtnText, themeStyles.summaryAnalyzeBtnText]}>분석보기</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.bigDistanceRow}>
-        <Text style={styles.bigDistanceLabel}>누적 거리</Text>
+        <Text style={[styles.bigDistanceLabel, themeStyles.bigDistanceLabel]}>누적 거리</Text>
         <Text style={styles.bigDistanceNumber}>
           {summary ? summary.total_distance_km.toFixed(2) : '0'}
         </Text>
-        <Text style={styles.bigDistanceUnit}>km</Text>
+        <Text style={[styles.bigDistanceUnit, themeStyles.bigDistanceUnit]}>km</Text>
       </View>
 
-      <View style={styles.statsCard}>
+      <View style={[styles.statsCard, themeStyles.statsCard]}>
         <View style={styles.statsInnerRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{summary?.total_activities ?? 0}</Text>
-            <Text style={styles.statLabel}>횟수</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>{summary?.total_activities ?? 0}</Text>
+            <Text style={[styles.statLabel, themeStyles.statLabel]}>횟수</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{summary?.total_duration_display ?? '0:00:00'}</Text>
-            <Text style={styles.statLabel}>누적 시간</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>{summary?.total_duration_display ?? '0:00:00'}</Text>
+            <Text style={[styles.statLabel, themeStyles.statLabel]}>누적 시간</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{summary?.average_pace_display ?? "-"}</Text>
-            <Text style={styles.statLabel}>평균 페이스</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>{summary?.average_pace_display ?? "-"}</Text>
+            <Text style={[styles.statLabel, themeStyles.statLabel]}>평균 페이스</Text>
           </View>
         </View>
       </View>
@@ -548,21 +643,32 @@ export default function CalendarScreen() {
   // ─────────────────────────────────────────
   // 상세 기록 리스트
   // ─────────────────────────────────────────
-  // 현재 월의 활동만 필터링
-  const monthActivities = activities.filter((a) => {
-    const d = new Date(a.started_at);
-    return d.getFullYear() === currentYear && d.getMonth() + 1 === currentMonth;
-  });
+  // 연간 뷰: 해당 연도 전체, 월간/주간 뷰: 현재 연·월만 (달력과 동일한 year 기준)
+  const detailActivities = useMemo(() => {
+    if (viewMode === 'yearly') {
+      return activities.filter((a) => {
+        const d = new Date(a.started_at);
+        return d.getFullYear() === currentYear;
+      });
+    }
+    return activities.filter((a) => {
+      const d = new Date(a.started_at);
+      return d.getFullYear() === currentYear && d.getMonth() + 1 === currentMonth;
+    });
+  }, [activities, viewMode, currentYear, currentMonth]);
+
+  const detailTitle = viewMode === 'yearly' ? `${currentYear}년 기록` : '상세 기록';
+  const detailEmptyMessage = viewMode === 'yearly' ? `${currentYear}년 기록이 없습니다` : '이 달의 기록이 없습니다';
 
   const renderDetailRecords = () => (
     <View style={styles.detailSection}>
-      <Text style={styles.detailTitle}>상세 기록</Text>
-      {monthActivities.length === 0 && (
-        <Text style={[styles.recordDate, { paddingVertical: 16, textAlign: 'center' }]}>
-          이 달에 기록이 없습니다
+      <Text style={[styles.detailTitle, themeStyles.detailTitle]}>{detailTitle}</Text>
+      {detailActivities.length === 0 && (
+        <Text style={[styles.recordDate, themeStyles.recordDate, { paddingVertical: 16, textAlign: 'center' }]}>
+          {detailEmptyMessage}
         </Text>
       )}
-      {monthActivities.map((record, index) => {
+      {detailActivities.map((record, index) => {
         const d = new Date(record.started_at);
         const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         return (
@@ -571,13 +677,13 @@ export default function CalendarScreen() {
             onPress={() => router.push(`/(tabs)/run/${record.activity_id}`)}
           >
             <View style={styles.recordItem}>
-              <Text style={styles.recordMain}>
+              <Text style={[styles.recordMain, themeStyles.recordMain]}>
                 {record.distance_km} km · {record.duration_display} · {record.average_pace_display}/km
               </Text>
-              <Text style={styles.recordDate}>{dateStr}</Text>
+              <Text style={[styles.recordDate, themeStyles.recordDate]}>{dateStr}</Text>
             </View>
-            {index < monthActivities.length - 1 && (
-              <View style={styles.recordDivider} />
+            {index < detailActivities.length - 1 && (
+              <View style={[styles.recordDivider, themeStyles.recordDivider]} />
             )}
           </TouchableOpacity>
         );
@@ -589,19 +695,26 @@ export default function CalendarScreen() {
   // 렌더
   // ═════════════════════════════════════════
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, themeStyles.container]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. 헤더 */}
+        {/* 1. 헤더: 제목 + 알림 */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>기록</Text>
+          <Text style={[styles.headerTitle, themeStyles.headerTitle]}>기록</Text>
+          <Pressable
+            onPress={() => router.push('/(tabs)/my/notifications')}
+            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            hitSlop={12}
+          >
+            <Bell size={24} color={theme.icon} strokeWidth={2} />
+          </Pressable>
         </View>
 
         {/* 2. 캘린더 카드 */}
-        <View style={styles.calendarCard}>
+        <View style={[styles.calendarCard, themeStyles.calendarCard]}>
           {renderSegmentControl()}
           {renderNavigation()}
           {viewMode === 'weekly' && renderWeeklyView()}
@@ -609,14 +722,11 @@ export default function CalendarScreen() {
           {viewMode === 'yearly' && renderYearlyView()}
         </View>
 
-        {/* 주간: 메트릭 섹션 */}
-        {viewMode === 'weekly' && renderWeeklyMetrics()}
+        {/* 전체 기록 요약 */}
+        {renderSummarySection()}
 
-        {/* 월간/연간: 전체 기록 요약 */}
-        {viewMode !== 'weekly' && renderSummarySection()}
-
-        {/* 상세 기록 (월간만) */}
-        {viewMode === 'monthly' && renderDetailRecords()}
+        {/* 상세 기록 */}
+        {renderDetailRecords()}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>

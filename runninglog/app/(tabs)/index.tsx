@@ -15,18 +15,18 @@ import { getActivities } from '@/lib/api/activities';
 import { getStatisticsSummary } from '@/lib/api/statistics';
 import type { StatisticsSummary } from '@/types/activity';
 
-// ─── 주간 캘린더 생성 ──────────────────────────────────────────
-const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+// ─── 주간 캘린더 생성 (일요일 시작) ──────────────────────────────────────────
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
 function getWeekCalendar(runDays: Set<number>) {
   const today = new Date();
   const todayDate = today.getDate();
-  const dayOfWeek = today.getDay(); // 0=일
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const dayOfWeek = today.getDay(); // 0=일요일, 1=월, ..., 6=토
+  const sundayOffset = -dayOfWeek; // 이번 주 일요일까지의 차이
 
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
-    d.setDate(today.getDate() + mondayOffset + i);
+    d.setDate(today.getDate() + sundayOffset + i);
     const date = d.getDate();
     return {
       label: WEEKDAY_LABELS[i],
@@ -113,12 +113,12 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* 주간 스트릭 캘린더 */}
-        <View style={[styles.weekCalendar, { backgroundColor: theme.surface }]}>
-          <View style={styles.weekRow}>
+        {/* 주간 스트릭 캘린더 (기록 주간 뷰와 동일 디자인·간격, 배경 없음) */}
+        <View style={styles.weekCalendar}>
+          <View style={styles.weekdayRow}>
             {weekDays.map((day) => (
-              <View key={day.label} style={styles.dayColumn}>
-                <Text style={[styles.dayLabel, { color: theme.textTertiary }]}>
+              <View key={day.label} style={styles.weekdayCell}>
+                <Text style={[styles.weekdayText, { color: theme.textTertiary }]}>
                   {day.label}
                 </Text>
               </View>
@@ -126,14 +126,27 @@ export default function HomeScreen() {
           </View>
           <View style={styles.weekRow}>
             {weekDays.map((day) => {
-              const isSelected = day.hasRun;
-              const bgColor = isSelected ? BrandOrange : theme.border;
-              const textColor = isSelected ? '#FFFFFF' : theme.text;
+              const hasRun = day.hasRun;
+              const todayFlag = day.isToday;
 
               return (
-                <View key={day.date} style={styles.dayColumn}>
-                  <View style={[styles.dateBadge, { backgroundColor: bgColor }]}>
-                    <Text style={[styles.dateNumber, { color: textColor }]}>
+                <View key={`${day.label}-${day.date}`} style={styles.dayCell}>
+                  <View
+                    style={[
+                      styles.dayBadge,
+                      hasRun && styles.dayBadgeRun,
+                      !hasRun && !todayFlag && [styles.dayBadgeEmpty, { backgroundColor: theme.lightGray }],
+                      todayFlag && !hasRun && styles.dayBadgeToday,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dayText,
+                        { color: theme.text },
+                        hasRun && styles.dayTextRun,
+                        todayFlag && !hasRun && styles.dayTextToday,
+                      ]}
+                    >
                       {day.date}
                     </Text>
                   </View>
@@ -160,10 +173,10 @@ export default function HomeScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.text }]}>
-              {summary?.average_pace_display ?? '-'}
+              {summary?.average_pace ?? '-'}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-              현재 페이스
+              평균 페이스
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -240,35 +253,59 @@ const styles = StyleSheet.create({
     fontFamily: F.inter700,
   },
 
-  /* 주간 스트릭 캘린더 */
+  /* 주간 스트릭 캘린더 (기록 주간 뷰와 동일 간격, 배경 없음) */
   weekCalendar: {
-    borderRadius: 16,
     marginBottom: 32,
-    paddingVertical: 12,
   },
-  weekRow: {
+  weekdayRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  dayColumn: {
+  weekdayCell: {
     flex: 1,
     alignItems: 'center',
   },
-  dayLabel: {
+  weekdayText: {
     fontSize: 12,
-    fontFamily: F.inter500,
-    marginBottom: 8,
+    fontFamily: F.inter400,
   },
-  dateBadge: {
+  weekRow: {
+    flexDirection: 'row',
+  },
+  dayCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+  },
+  dayBadge: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dateNumber: {
+  dayBadgeRun: {
+    backgroundColor: BrandOrange,
+  },
+  dayBadgeEmpty: {
+    backgroundColor: undefined,
+  },
+  dayBadgeToday: {
+    borderWidth: 2,
+    borderColor: BrandOrange,
+  },
+  dayText: {
     fontSize: 15,
-    fontFamily: F.inter600,
+    fontFamily: F.inter500,
+  },
+  dayTextRun: {
+    color: '#FFFFFF',
+    fontFamily: F.inter700,
+  },
+  dayTextToday: {
+    color: BrandOrange,
+    fontFamily: F.inter700,
   },
 
   /* 거리 표시 */

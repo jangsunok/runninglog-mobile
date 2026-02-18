@@ -80,6 +80,13 @@ export default function RunActiveScreen() {
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [showSplit, setShowSplit] = useState(false);
   const [gpsEnabled, setGpsEnabled] = useState<boolean | null>(null);
+  /** 최초 진입 시 현재 GPS로 지도 중심용 (좌표 없을 때 사용) */
+  const [initialGpsRegion, setInitialGpsRegion] = useState<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mapRef = useRef<ActiveRunMapViewRef>(null);
   const watchSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
@@ -155,6 +162,31 @@ export default function RunActiveScreen() {
         setGpsEnabled(true);
       }
     }, [refreshPermission])
+  );
+
+  // 최초 진입 시 현재 GPS로 지도 중심 설정 (좌표가 없을 때 지도에 현재 위치 표시)
+  useFocusEffect(
+    useCallback(() => {
+      if (!canRun || Platform.OS === 'web') return;
+      let mounted = true;
+      Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      })
+        .then((loc) => {
+          if (!mounted) return;
+          const { latitude, longitude } = loc.coords;
+          setInitialGpsRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          });
+        })
+        .catch((e) => console.warn('[active] initial GPS for map', e));
+      return () => {
+        mounted = false;
+      };
+    }, [canRun])
   );
 
   // 포그라운드 위치 watch: Android 등에서 백그라운드 태스크만으로는 업데이트가 느릴 수 있어 실시간 보강
@@ -351,6 +383,7 @@ export default function RunActiveScreen() {
       <ActiveRunMapView
         ref={mapRef}
         coordinates={coordinates}
+        initialGpsRegion={initialGpsRegion}
         isFollowingUser={status === 'running'}
         style={StyleSheet.absoluteFill}
       />

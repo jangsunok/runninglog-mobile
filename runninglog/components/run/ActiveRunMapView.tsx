@@ -1,7 +1,7 @@
 /**
  * Active Run MapView - 네이버 지도 기반 실시간 러닝 경로 표시
- * - 시작 위치 마커, 현재 위치 마커, 경로 폴리라인
- * - 좌표가 없을 때는 초기 중심(서울) 표시
+ * - 시작/현재 위치 주황색 원형 마커(NaverMapCircleOverlay), 경로 폴리라인
+ * - 좌표가 없을 때는 initialGpsRegion 또는 서울 기본 중심 표시
  * - ref로 moveToRegion() 노출 → 현재 위치 버튼 등에서 사용
  */
 
@@ -30,13 +30,13 @@ export type ActiveRunMapViewRef = {
 // 네이버 지도는 네이티브(iOS/Android) 전용. 웹/미지원 환경에서는 플레이스홀더
 let NaverMapView: any = null;
 let NaverMapPolylineOverlay: any = null;
-let NaverMapMarkerOverlay: any = null;
+let NaverMapCircleOverlay: any = null;
 
 try {
   const NaverMap = require('@mj-studio/react-native-naver-map');
   NaverMapView = NaverMap.NaverMapView;
   NaverMapPolylineOverlay = NaverMap.NaverMapPolylineOverlay;
-  NaverMapMarkerOverlay = NaverMap.NaverMapMarkerOverlay;
+  NaverMapCircleOverlay = NaverMap.NaverMapCircleOverlay;
 } catch {
   // Development Build 없이 실행 시 fallback
 }
@@ -52,7 +52,14 @@ const DEFAULT_REGION = {
 interface ActiveRunMapViewProps {
   /** 경로 좌표 (시작 ~ 현재) */
   coordinates: Coordinate[];
-  /** 초기/현재 중심 (선택, 없으면 coordinates 또는 DEFAULT_REGION) */
+  /** 최초 진입 시 현재 GPS로 지도 중심 (좌표 없을 때 사용) */
+  initialGpsRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null;
+  /** 초기/현재 중심 (선택, 없으면 coordinates 또는 initialGpsRegion 또는 DEFAULT_REGION) */
   region?: {
     latitude: number;
     longitude: number;
@@ -85,6 +92,7 @@ function computeRegion(coords: Coordinate[], padding = 1.4): typeof DEFAULT_REGI
 function ActiveRunMapViewInner(
   {
     coordinates,
+    initialGpsRegion,
     region: regionProp,
     isFollowingUser = true,
     style,
@@ -95,8 +103,10 @@ function ActiveRunMapViewInner(
 
   const region = useMemo(() => {
     if (regionProp) return regionProp;
-    return computeRegion(coordinates);
-  }, [coordinates, regionProp]);
+    if (coordinates.length > 0) return computeRegion(coordinates);
+    if (initialGpsRegion) return initialGpsRegion;
+    return DEFAULT_REGION;
+  }, [coordinates, regionProp, initialGpsRegion]);
 
   const startCoord = coordinates[0] ?? null;
   const currentCoord = coordinates.length > 0 ? coordinates[coordinates.length - 1] : null;
@@ -154,21 +164,24 @@ function ActiveRunMapViewInner(
         />
       )}
       {startCoord && (
-        <NaverMapMarkerOverlay
+        <NaverMapCircleOverlay
           latitude={startCoord.latitude}
           longitude={startCoord.longitude}
-          caption={{ text: '출발', align: 'Bottom' }}
-          width={24}
-          height={24}
+          radius={8}
+          color={BrandOrange}
+          outlineWidth={2}
+          outlineColor="#FFFFFF"
           zIndex={20}
         />
       )}
       {currentCoord && coordinates.length > 1 && (
-        <NaverMapMarkerOverlay
+        <NaverMapCircleOverlay
           latitude={currentCoord.latitude}
           longitude={currentCoord.longitude}
-          width={28}
-          height={28}
+          radius={10}
+          color={BrandOrange}
+          outlineWidth={2}
+          outlineColor="#FFFFFF"
           zIndex={21}
         />
       )}
