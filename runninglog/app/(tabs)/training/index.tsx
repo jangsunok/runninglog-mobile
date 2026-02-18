@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   ScrollView,
   View,
@@ -9,6 +10,10 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import {
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Medals } from '@/constants/assets';
@@ -320,6 +325,11 @@ function GoalSettingModal({
   onClose: () => void;
   onSubmit: (type: GoalType, value: number) => void;
 }) {
+  const insets = useSafeAreaInsets();
+  // 모달은 별도 윈도우에 그려져 Android에서 insets.bottom이 0일 수 있음 → 메인 윈도우 metrics 또는 폴백 사용
+  const bottomInset =
+    insets.bottom ||
+    (initialWindowMetrics?.insets?.bottom ?? (Platform.OS === 'android' ? 48 : 0));
   const [selectedType, setSelectedType] = useState<GoalType>('distance');
   const [inputValue, setInputValue] = useState('');
 
@@ -347,7 +357,7 @@ function GoalSettingModal({
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingBottom: 40 + bottomInset }]}>
           {/* 헤더 */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>이달의 목표 설정</Text>
@@ -666,7 +676,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: 'row',

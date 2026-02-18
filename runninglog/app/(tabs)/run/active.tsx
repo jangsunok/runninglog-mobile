@@ -22,7 +22,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ActiveRunMapView } from '@/components/run/ActiveRunMapView';
+import {
+  ActiveRunMapView,
+  type ActiveRunMapViewRef,
+} from '@/components/run/ActiveRunMapView';
 import { EndRunButton } from '@/components/run/EndRunButton';
 import { LocationPermissionDenied } from '@/components/run/LocationPermissionDenied';
 import { LocationPermissionOnboarding } from '@/components/run/LocationPermissionOnboarding';
@@ -71,12 +74,15 @@ export default function RunActiveScreen() {
     pauseRun,
     resumeRun,
     finishRun,
+    addLocations,
   } = useRunStore();
 
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [showSplit, setShowSplit] = useState(false);
   const [gpsEnabled, setGpsEnabled] = useState<boolean | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mapRef = useRef<ActiveRunMapViewRef>(null);
+  const watchSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
 
   const { sync, loading: saving, error: syncError } = useSyncRunToServer();
 
@@ -151,6 +157,45 @@ export default function RunActiveScreen() {
     }, [refreshPermission])
   );
 
+  // 포그라운드 위치 watch: Android 등에서 백그라운드 태스크만으로는 업데이트가 느릴 수 있어 실시간 보강
+  useEffect(() => {
+    if (status !== 'running') {
+      if (watchSubscriptionRef.current) {
+        watchSubscriptionRef.current.remove();
+        watchSubscriptionRef.current = null;
+      }
+      return;
+    }
+    let mounted = true;
+    Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.BestForNavigation,
+        distanceInterval: 10,
+        timeInterval: 3000,
+      },
+      (loc) => {
+        if (!mounted) return;
+        addLocations([
+          {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            timestamp: loc.timestamp,
+          },
+        ]);
+      }
+    )
+      .then((sub) => {
+        if (mounted) watchSubscriptionRef.current = sub;
+        else sub.remove();
+      })
+      .catch((e) => console.warn('[active] watchPositionAsync', e));
+    return () => {
+      mounted = false;
+      watchSubscriptionRef.current?.remove();
+      watchSubscriptionRef.current = null;
+    };
+  }, [status, addLocations]);
+
   // 1초마다 경과 시간 갱신 (running/paused)
   useEffect(() => {
     if (status !== 'running' && status !== 'paused' || !currentSession) {
@@ -181,18 +226,64 @@ export default function RunActiveScreen() {
     const granted = await requestForRun();
     if (granted) {
       startRun();
+      try {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.BestForNavigation,
+        });
+        addLocations([
+          {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            timestamp: loc.timestamp,
+          },
+        ]);
+      } catch (e) {
+        console.warn('[active] getCurrentPosition on onboarding', e);
+      }
       startLocationUpdates().catch((e) =>
         console.warn('[active] startLocationUpdates', e)
       );
     }
-  }, [requestForRun, startRun]);
+  }, [requestForRun, startRun, addLocations]);
 
-  const handleStart = useCallback(() => {
+  const handleMoveToCurrentLocation = useCallback(async () => {
+    try {
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+      const { latitude, longitude } = loc.coords;
+      mapRef.current?.moveToRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    } catch (e) {
+      console.warn('[active] getCurrentPosition', e);
+    }
+  }, []);
+
+  const handleStart = useCallback(async () => {
     startRun();
+    // 첫 좌표를 즉시 넣어 출발 마커·지도 중심 표시 (Android 등에서 백그라운드 태스크 지연 대비)
+    try {
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+      addLocations([
+        {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          timestamp: loc.timestamp,
+        },
+      ]);
+    } catch (e) {
+      console.warn('[active] getCurrentPosition on start', e);
+    }
     startLocationUpdates().catch((e) =>
       console.warn('[active] startLocationUpdates', e)
     );
-  }, [startRun]);
+  }, [startRun, addLocations]);
 
   const handlePauseToggle = useCallback(() => {
     if (status === 'idle') {
@@ -258,6 +349,7 @@ export default function RunActiveScreen() {
     <View style={styles.container}>
       {/* ── 전체 화면 지도 ─────────────────────────── */}
       <ActiveRunMapView
+        ref={mapRef}
         coordinates={coordinates}
         isFollowingUser={status === 'running'}
         style={StyleSheet.absoluteFill}
@@ -280,6 +372,15 @@ export default function RunActiveScreen() {
         </Pressable>
 
         <View style={styles.headerRight}>
+          <Pressable
+            onPress={handleMoveToCurrentLocation}
+            style={styles.blurBadge}
+          >
+            <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.locationButtonInner}>
+              <MaterialIcons name="my-location" size={18} color="#FFFFFF" />
+            </View>
+          </Pressable>
           {status === 'running' && (
             <View style={styles.blurBadge}>
               <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
@@ -459,6 +560,11 @@ const styles = StyleSheet.create({
   blurBadge: {
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  locationButtonInner: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   liveBadgeInner: {
     flexDirection: 'row',

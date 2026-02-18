@@ -3171,7 +3171,7 @@
                       "id": "3K2XM",
                       "name": "menuLabel1",
                       "fill": "$text",
-                      "content": "계정/기기 연동",
+                      "content": "계정 및 기기 연동",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "500"
@@ -24204,7 +24204,7 @@
       "id": "6hMPP",
       "x": -1317,
       "y": 4485,
-      "name": "데이터 소스 연동",
+      "name": "계정 및 기기 연동",
       "width": 390,
       "height": 737,
       "fill": "$background",
@@ -24237,7 +24237,7 @@
               "id": "ptzyH",
               "name": "headerTitle2",
               "fill": "$text",
-              "content": "데이터 소스 연동",
+              "content": "계정 및 기기 연동",
               "fontFamily": "Inter",
               "fontSize": 18,
               "fontWeight": "700"

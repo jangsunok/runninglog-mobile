@@ -1,13 +1,14 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Bell, Heart } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { ThemedView } from '@/components/themed-view';
-import { BrandOrange, BrandOrangeLight, Colors, F } from '@/constants/theme';
+import { BrandOrange, BrandOrangeLight, Colors, F, HeartRed } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
 import { getActivities } from '@/lib/api/activities';
@@ -47,7 +48,7 @@ export default function HomeScreen() {
   const [summary, setSummary] = useState<StatisticsSummary | null>(null);
   const [runDays, setRunDays] = useState<Set<number>>(new Set());
   const [aiMessage, setAiMessage] = useState(
-    '오늘 달리기 딱 좋은 날씨인데, 잠깐만 나가서 달리고 오는 건 어때?'
+    '와, 이번주에는 주 5일이나 달리기를 진행했네! 너무 고생 많았어. 달린 후 회복을 위한 스트레칭도 잊지 말고 꼭 해줘. 내일도 행복한 러닝하자'
   );
 
   const today = new Date();
@@ -98,14 +99,22 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 날짜 헤더 */}
-        <Text style={[styles.dateText, { color: theme.text }]}>
-          {displayDate}
-        </Text>
+        {/* 헤더: 날짜 + 알림 */}
+        <View style={styles.headerRow}>
+          <Text style={[styles.dateText, { color: theme.text }]}>
+            {displayDate}
+          </Text>
+          <Pressable
+            onPress={() => router.push('/(tabs)/my/notifications')}
+            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            hitSlop={12}
+          >
+            <Bell size={24} color={theme.icon} strokeWidth={2} />
+          </Pressable>
+        </View>
 
         {/* 주간 스트릭 캘린더 */}
-        <View style={[styles.weekCalendar, { backgroundColor: theme.background }]}>
-          {/* 요일 라벨 행 */}
+        <View style={[styles.weekCalendar, { backgroundColor: theme.surface }]}>
           <View style={styles.weekRow}>
             {weekDays.map((day) => (
               <View key={day.label} style={styles.dayColumn}>
@@ -115,20 +124,11 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
-          {/* 날짜 원형 행 */}
           <View style={styles.weekRow}>
             {weekDays.map((day) => {
-              let bgColor = '#E5E5E5';
-              let textColor = '#737373';
-
-              if (day.hasRun) {
-                bgColor = BrandOrange;
-                textColor = '#FFFFFF';
-              }
-              if (day.isToday && !day.hasRun) {
-                bgColor = '#1A1A1A';
-                textColor = '#FFFFFF';
-              }
+              const isSelected = day.hasRun;
+              const bgColor = isSelected ? BrandOrange : theme.border;
+              const textColor = isSelected ? '#FFFFFF' : theme.text;
 
               return (
                 <View key={day.date} style={styles.dayColumn}>
@@ -146,7 +146,7 @@ export default function HomeScreen() {
         {/* 거리 표시 */}
         <View style={styles.distanceSection}>
           <Text style={styles.distanceValue}>
-            {summary ? summary.total_distance_km.toFixed(1) : '0'}
+            {summary ? summary.total_distance_km.toFixed(2) : '0.00'}
           </Text>
           <Text style={[styles.distanceUnit, { color: theme.text }]}>km</Text>
         </View>
@@ -156,19 +156,20 @@ export default function HomeScreen() {
           {summary?.total_duration_display ?? '00:00:00'}
         </Text>
 
-        {/* 페이스 & 심박수 */}
+        {/* 현재 페이스 & 심박수 */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.text }]}>
               {summary?.average_pace_display ?? '-'}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-              평균 페이스
+              현재 페이스
             </Text>
           </View>
           <View style={styles.statItem}>
             <View style={styles.heartRateRow}>
-              <Text style={styles.heartIcon}>♡</Text>
+              <Heart size={22} color={HeartRed} fill={HeartRed} strokeWidth={2} />
+              <Text style={[styles.statValue, { color: theme.text }]}>-</Text>
             </View>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               심박수 bpm
@@ -177,7 +178,7 @@ export default function HomeScreen() {
         </View>
 
         {/* AI 페이스메이커 카드 */}
-        <AIPacemakerCard message={aiMessage} style={styles.aiCard} />
+        <AIPacemakerCard message={aiMessage} style={styles.aiCard} theme={theme} />
 
         {/* RUN 버튼 */}
         <View style={styles.runButtonContainer}>
@@ -199,7 +200,9 @@ export default function HomeScreen() {
                 size={34}
                 color="#FFFFFF"
               />
-              <Text style={styles.runButtonText}>RUN</Text>
+              <Text style={[styles.runButtonText, { color: colorScheme === 'dark' ? '#FFFFFF' : theme.text }]}>
+                RUN
+              </Text>
             </LinearGradient>
           </Pressable>
         </View>
@@ -216,7 +219,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scroll: {
     flex: 1,
@@ -225,12 +227,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  /* 날짜 헤더 */
+  /* 헤더: 날짜 + 알림 */
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+  },
   dateText: {
     fontSize: 28,
     fontFamily: F.inter700,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
   },
 
   /* 주간 스트릭 캘린더 */
@@ -255,7 +262,7 @@ const styles = StyleSheet.create({
   dateBadge: {
     width: 42,
     height: 42,
-    borderRadius: 12,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -309,11 +316,7 @@ const styles = StyleSheet.create({
   heartRateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  heartIcon: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#FF4D6A',
+    gap: 6,
   },
   statLabel: {
     fontSize: 13,
@@ -352,7 +355,6 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
   runButtonText: {
-    color: '#FFFFFF',
     fontSize: 10,
     fontFamily: F.inter600,
     letterSpacing: 1.2,

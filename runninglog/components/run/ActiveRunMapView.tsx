@@ -2,12 +2,30 @@
  * Active Run MapView - 네이버 지도 기반 실시간 러닝 경로 표시
  * - 시작 위치 마커, 현재 위치 마커, 경로 폴리라인
  * - 좌표가 없을 때는 초기 중심(서울) 표시
+ * - ref로 moveToRegion() 노출 → 현재 위치 버튼 등에서 사용
  */
 
-import { useRef, useEffect, useMemo } from 'react';
+import {
+  forwardRef,
+  type Ref,
+  useImperativeHandle,
+  useRef,
+  useEffect,
+  useMemo,
+} from 'react';
 import { StyleSheet, View, Text, Platform } from 'react-native';
 import type { Coordinate } from '@/types/run';
 import { BrandOrange } from '@/constants/theme';
+
+export type ActiveRunMapViewRef = {
+  /** 해당 region으로 카메라 이동 */
+  moveToRegion: (region: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  }) => void;
+};
 
 // 네이버 지도는 네이티브(iOS/Android) 전용. 웹/미지원 환경에서는 플레이스홀더
 let NaverMapView: any = null;
@@ -64,12 +82,15 @@ function computeRegion(coords: Coordinate[], padding = 1.4): typeof DEFAULT_REGI
   };
 }
 
-export function ActiveRunMapView({
-  coordinates,
-  region: regionProp,
-  isFollowingUser = true,
-  style,
-}: ActiveRunMapViewProps) {
+function ActiveRunMapViewInner(
+  {
+    coordinates,
+    region: regionProp,
+    isFollowingUser = true,
+    style,
+  }: ActiveRunMapViewProps,
+  ref: Ref<ActiveRunMapViewRef>
+) {
   const mapRef = useRef<any>(null);
 
   const region = useMemo(() => {
@@ -90,6 +111,21 @@ export function ActiveRunMapView({
     });
   }, [coordinates.length, isFollowingUser, coordinates]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      moveToRegion: (r: {
+        latitude: number;
+        longitude: number;
+        latitudeDelta: number;
+        longitudeDelta: number;
+      }) => {
+        mapRef.current?.animateRegionTo?.({ ...r, duration: 300 });
+      },
+    }),
+    []
+  );
+
   if (Platform.OS === 'web' || !NaverMapView) {
     return (
       <View style={[styles.placeholder, style]}>
@@ -105,7 +141,7 @@ export function ActiveRunMapView({
       style={[StyleSheet.absoluteFill, style]}
       initialRegion={region}
       region={region}
-      isShowLocationButton={false}
+      isShowLocationButton={true}
       isShowCompass={false}
       isShowScaleBar={false}
     >
@@ -139,6 +175,8 @@ export function ActiveRunMapView({
     </NaverMapView>
   );
 }
+
+export const ActiveRunMapView = forwardRef(ActiveRunMapViewInner);
 
 const styles = StyleSheet.create({
   placeholder: {
