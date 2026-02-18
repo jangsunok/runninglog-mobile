@@ -1,3 +1,4 @@
+import Toast from 'react-native-toast-message';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
@@ -116,7 +117,7 @@ export default function CalendarScreen() {
         }
         setRunDates(dateMap);
       } catch {
-        // 오류 시 빈 상태 유지
+        Toast.show({ type: 'error', text1: '기록을 불러오지 못했어요.' });
       }
     })();
   }, []);
@@ -749,7 +750,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    paddingTop: 60,
   },
   headerTitle: {
     fontSize: 28,

@@ -20,6 +20,10 @@ export function setAuthToken(token: string | null) {
   accessToken = token;
 }
 
+export function getAuthToken(): string | null {
+  return accessToken;
+}
+
 export async function apiClient<T = unknown>(
   path: string,
   config: ApiRequestConfig = {}

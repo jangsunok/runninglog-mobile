@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Switch, View } from 'react-native';
-import { ChevronLeft, ExternalLink } from 'lucide-react-native';
-
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -31,7 +31,7 @@ export default function NotificationSettingsScreen() {
       setMarketingEnabled(data.marketing_enabled);
       setNightPushEnabled(data.night_push_enabled);
     } catch {
-      // 기본값 유지
+      Toast.show({ type: 'error', text1: '설정을 불러오지 못했어요.' });
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,8 @@ export default function NotificationSettingsScreen() {
     try {
       await updateNotificationSettings({ [key]: value });
     } catch {
-      setter(!value); // 롤백
+      setter(!value);
+      Toast.show({ type: 'error', text1: '설정 변경에 실패했어요. 다시 시도해주세요.' });
     }
   };
 
@@ -83,6 +84,7 @@ export default function NotificationSettingsScreen() {
             onValueChange={(v) => handleToggle('push_enabled', v, setPushEnabled)}
             trackColor={{ false: '#D1D5DB', true: BrandOrange }}
             thumbColor="#FFFFFF"
+            style={styles.toggle}
           />
         </View>
 
@@ -95,6 +97,7 @@ export default function NotificationSettingsScreen() {
             onValueChange={(v) => handleToggle('marketing_enabled', v, setMarketingEnabled)}
             trackColor={{ false: '#D1D5DB', true: BrandOrange }}
             thumbColor="#FFFFFF"
+            style={styles.toggle}
           />
         </View>
 
@@ -107,6 +110,7 @@ export default function NotificationSettingsScreen() {
             onValueChange={(v) => handleToggle('night_push_enabled', v, setNightPushEnabled)}
             trackColor={{ false: '#D1D5DB', true: BrandOrange }}
             thumbColor="#FFFFFF"
+            style={styles.toggle}
           />
         </View>
 
@@ -115,10 +119,10 @@ export default function NotificationSettingsScreen() {
             GPS 제공 동의
           </ThemedText>
           <Pressable style={styles.gpsBtn}>
-            <ThemedText style={[styles.gpsBtnText, { color: c.textSecondary }]}>
-              설정에서 변경
+            <ThemedText style={[styles.gpsBtnText, { color: BrandOrange }]}>
+              확인하기
             </ThemedText>
-            <ExternalLink size={14} color={c.textSecondary} />
+            <ChevronRight size={16} color={BrandOrange} />
           </Pressable>
         </View>
       </View>
@@ -146,5 +150,6 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { fontSize: 16 },
   gpsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  gpsBtnText: { fontSize: 13 },
+  toggle: { transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] },
+  gpsBtnText: { fontSize: 14 },
 });

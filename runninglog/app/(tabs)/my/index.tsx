@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Bell, ChevronRight, Gem, Headphones, LogOut, Plug, SunMoon, FileText, UserX, User as UserIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -46,7 +47,7 @@ export default function MyScreen() {
       setUser(userData);
       setUnreadCount(count);
     } catch {
-      // silent
+      Toast.show({ type: 'error', text1: '정보를 불러오지 못했어요.' });
     }
   }, []);
 
@@ -83,7 +84,10 @@ export default function MyScreen() {
               {user?.nickname ?? '러너'}
             </ThemedText>
           </View>
-          <Pressable style={[styles.profileBtn, { backgroundColor: c.lightGray }]}>
+          <Pressable
+            style={[styles.profileBtn, { backgroundColor: c.lightGray }]}
+            onPress={() => router.push('/(tabs)/my/profile-settings')}
+          >
             <ThemedText style={[styles.profileBtnText, { color: c.textSecondary }]}>
               프로필 설정
             </ThemedText>
@@ -141,6 +145,18 @@ export default function MyScreen() {
                 탈퇴하기
               </ThemedText>
             </View>
+          </Pressable>
+        </View>
+
+        {/* 테스트: 월간 결산 */}
+        <View style={styles.reportBtnSection}>
+          <Pressable
+            style={styles.reportBtn}
+            onPress={() => router.push('/(tabs)/my/monthly-report')}
+          >
+            <ThemedText style={styles.reportBtnText}>
+              테스트 결산 확인하기
+            </ThemedText>
           </Pressable>
         </View>
 
@@ -224,4 +240,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   versionText: { fontSize: 13 },
+  reportBtnSection: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  reportBtn: {
+    backgroundColor: BrandOrange,
+    borderRadius: 12,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: F.inter700,
+  },
 });
