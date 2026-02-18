@@ -64,7 +64,7 @@ export default function TabLayout() {
       {/* Hidden tabs */}
       <Tabs.Screen
         name="run"
-        options={{ href: null }}
+        options={{ href: null, tabBarStyle: { display: 'none' } }}
       />
     </Tabs>
   );

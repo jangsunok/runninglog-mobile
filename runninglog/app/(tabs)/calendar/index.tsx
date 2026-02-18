@@ -527,31 +527,6 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // 주간 상세 메트릭 (pen: metricsSection)
-  // ─────────────────────────────────────────
-  const renderWeeklyMetrics = () => (
-    <View style={wkS.metricsSection}>
-      <View style={wkS.mainMetrics}>
-        <Text style={wkS.distanceValue}>5.23</Text>
-        <Text style={wkS.distanceUnit}>km</Text>
-      </View>
-      <Text style={wkS.timeValue}>00:28:45</Text>
-      <View style={wkS.secondaryRow}>
-        <View style={wkS.secondaryItem}>
-          <Text style={wkS.secondaryValue}>5'29"</Text>
-          <Text style={wkS.secondaryLabel}>현재 페이스</Text>
-        </View>
-        <View style={wkS.secondaryItem}>
-          <Text style={wkS.secondaryValue}>
-            <Text style={{ color: '#EF4444' }}>♥ </Text>156
-          </Text>
-          <Text style={wkS.secondaryLabel}>심박수 bpm</Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  // ─────────────────────────────────────────
   // 월간 뷰
   // ─────────────────────────────────────────
   const renderMonthlyView = () => (
@@ -823,12 +798,6 @@ export default function CalendarScreen() {
           {viewMode === 'monthly' && renderMonthlyView()}
           {viewMode === 'yearly' && renderYearlyView()}
         </View>
-
-        {/* 3. X월의 목표 */}
-        {renderGoalSection()}
-
-        {/* 4. X월의 업적 */}
-        {renderAchievementSection()}
 
         {/* 전체 기록 요약 */}
         {renderSummarySection()}

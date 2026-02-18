@@ -11,7 +11,7 @@ import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -372,6 +372,14 @@ export default function RunActiveScreen() {
   const distanceKm = liveMetrics.distanceMeters / 1000;
   const paceStr = formatPace(liveMetrics.paceMinPerKm);
 
+  // 오버레이 UI를 고려한 지도 패딩 (현재 위치가 보이는 영역의 중심에 오도록)
+  const mapPadding = useMemo(() => ({
+    top: insets.top + 260,
+    bottom: Math.max(insets.bottom, 16) + 90,
+    left: 0,
+    right: 0,
+  }), [insets.top, insets.bottom]);
+
   const startPauseLabel =
     status === 'idle' ? '시작' : status === 'paused' ? '재개' : '일시중단';
   const startPauseIcon =
@@ -385,6 +393,7 @@ export default function RunActiveScreen() {
         coordinates={coordinates}
         initialGpsRegion={initialGpsRegion}
         isFollowingUser={status === 'running'}
+        mapPadding={mapPadding}
         style={StyleSheet.absoluteFill}
       />
 

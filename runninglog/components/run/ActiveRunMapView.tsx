@@ -68,6 +68,8 @@ interface ActiveRunMapViewProps {
   } | null;
   /** 사용자 위치 추적 모드 (카메라가 현재 위치 따라감) */
   isFollowingUser?: boolean;
+  /** 지도 콘텐츠 패딩 (오버레이 UI를 고려한 중심 보정) */
+  mapPadding?: { top: number; bottom: number; left: number; right: number };
   style?: object;
 }
 
@@ -95,6 +97,7 @@ function ActiveRunMapViewInner(
     initialGpsRegion,
     region: regionProp,
     isFollowingUser = true,
+    mapPadding,
     style,
   }: ActiveRunMapViewProps,
   ref: Ref<ActiveRunMapViewRef>
@@ -111,15 +114,18 @@ function ActiveRunMapViewInner(
   const startCoord = coordinates[0] ?? null;
   const currentCoord = coordinates.length > 0 ? coordinates[coordinates.length - 1] : null;
 
-  // 좌표가 늘어나면 카메라를 경로에 맞춤 (선택적)
+  // 최신 좌표로 카메라를 따라감 (isFollowingUser 활성 시)
   useEffect(() => {
-    if (!isFollowingUser || coordinates.length < 2 || !mapRef.current?.animateRegionTo) return;
-    const next = computeRegion(coordinates);
+    if (!isFollowingUser || coordinates.length === 0 || !mapRef.current?.animateRegionTo) return;
+    const latest = coordinates[coordinates.length - 1];
     mapRef.current.animateRegionTo({
-      ...next,
+      latitude: latest.latitude,
+      longitude: latest.longitude,
+      latitudeDelta: 0.005,
+      longitudeDelta: 0.005,
       duration: 300,
     });
-  }, [coordinates.length, isFollowingUser, coordinates]);
+  }, [coordinates.length, isFollowingUser]);
 
   useImperativeHandle(
     ref,
@@ -154,6 +160,7 @@ function ActiveRunMapViewInner(
       isShowLocationButton={true}
       isShowCompass={false}
       isShowScaleBar={false}
+      mapPadding={mapPadding}
     >
       {coordinates.length >= 2 && (
         <NaverMapPolylineOverlay
@@ -161,6 +168,18 @@ function ActiveRunMapViewInner(
           width={5}
           color={BrandOrange}
           zIndex={10}
+        />
+      )}
+      {/* 초기 GPS 위치 마커 (러닝 시작 전, 주황색 원형) */}
+      {coordinates.length === 0 && initialGpsRegion && (
+        <NaverMapCircleOverlay
+          latitude={initialGpsRegion.latitude}
+          longitude={initialGpsRegion.longitude}
+          radius={10}
+          color={BrandOrange}
+          outlineWidth={2}
+          outlineColor="#FFFFFF"
+          zIndex={20}
         />
       )}
       {startCoord && (

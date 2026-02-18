@@ -51,6 +51,8 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isReady, isLoggedIn } = useAuth();
 
+  console.log('[RootLayoutNav] render', { isReady, isLoggedIn });
+
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -63,8 +65,12 @@ function RootLayoutNav() {
     BebasNeue_400Regular,
   });
 
+  console.log('[RootLayoutNav] fontsLoaded', fontsLoaded);
+
   useEffect(() => {
+    console.log('[RootLayoutNav] effect run', { isReady, fontsLoaded });
     if (!isReady || !fontsLoaded) return;
+    console.log('[RootLayoutNav] calling SplashScreen.hideAsync');
     SplashScreen.hideAsync();
   }, [isReady, fontsLoaded]);
 
