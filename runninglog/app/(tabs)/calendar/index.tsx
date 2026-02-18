@@ -1,17 +1,11 @@
 import Toast from 'react-native-toast-message';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-} from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Bell } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandOrange, BrandOrangeLight, Colors, C, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getActivities } from '@/lib/api/activities';
@@ -93,6 +87,7 @@ const MIN_DATE = new Date(MIN_YEAR, 0, 1);
 // ═════════════════════════════════════════════
 export default function CalendarScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -593,87 +588,6 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // X월의 목표 (이미지 디자인: 목표 미설정 시 문구 + 목표 설정하기 버튼)
-  // ─────────────────────────────────────────
-  const hasGoal = isViewingCurrentMonth && goal !== null;
-
-  const renderGoalSection = () => (
-    <View style={styles.goalSection}>
-      <Text style={[styles.goalSectionTitle, themeStyles.goalSectionTitle]}>
-        {currentMonth}월의 목표
-      </Text>
-      {hasGoal ? (
-        <View style={[styles.goalCard, themeStyles.goalCardEmptyBg]}>
-          <Text style={[styles.goalTitle, themeStyles.goalEmptyLine1]}>
-            {goal!.target_value}
-            {goal!.goal_type === 'DISTANCE' ? 'km' : goal!.goal_type === 'TIME' ? '시간' : '회'} 달리기
-          </Text>
-          <View style={[styles.progressBarBg, { backgroundColor: theme.border }]}>
-            <View
-              style={[
-                styles.progressBarFill,
-                { width: `${Math.min(Math.round((goal!.current_value / goal!.target_value) * 100), 100)}%` },
-              ]}
-            />
-          </View>
-          <View style={styles.progressRow}>
-            <Text style={[styles.progressValue, themeStyles.goalEmptyLine2]}>
-              {goal!.current_value} / {goal!.target_value}
-              {goal!.goal_type === 'DISTANCE' ? 'km' : goal!.goal_type === 'TIME' ? '시간' : '회'}
-            </Text>
-            <View style={styles.percentBadge}>
-              <Text style={styles.percentText}>
-                {Math.round((goal!.current_value / goal!.target_value) * 100)}%
-              </Text>
-            </View>
-          </View>
-        </View>
-      ) : (
-        <View style={[styles.goalCardEmpty, themeStyles.goalCardEmptyBg]}>
-          <Text style={[styles.goalEmptyLine1, themeStyles.goalEmptyLine1]}>
-            아직 이달의 목표가 없어요
-          </Text>
-          <Text style={[styles.goalEmptyLine2, themeStyles.goalEmptyLine2]}>
-            목표를 설정해 보세요
-          </Text>
-          <View style={styles.goalEmptyDivider} />
-          <TouchableOpacity
-            style={styles.setGoalButton}
-            onPress={() => router.push('/(tabs)/training')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.setGoalButtonText}>목표 설정하기</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-
-  // ─────────────────────────────────────────
-  // X월의 업적 (이미지 디자인: 설명 + 지난 업적 버튼)
-  // ─────────────────────────────────────────
-  const renderAchievementSection = () => (
-    <View style={styles.achievementSection}>
-      <View style={styles.achievementHeader}>
-        <Text style={[styles.achievementSectionTitle, themeStyles.achievementSectionTitle]}>
-          {currentMonth}월의 업적
-        </Text>
-        <TouchableOpacity
-          style={[styles.pastButton, themeStyles.pastButtonBg]}
-          onPress={() => router.push('/(tabs)/training')}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="emoji-events" size={16} color={theme.textSecondary} />
-          <Text style={[styles.pastButtonText, themeStyles.pastButtonText]}>지난 업적</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={[styles.achievementDesc, themeStyles.achievementDesc]}>
-        거리를 달성하면 메달이 활성화되며, 해당 월의 최고 기록이 표시돼요.
-      </Text>
-    </View>
-  );
-
-  // ─────────────────────────────────────────
   // 전체 기록 섹션 (pen 디자인: 통합 카드)
   // ─────────────────────────────────────────
   const renderSummarySection = () => (
@@ -773,12 +687,8 @@ export default function CalendarScreen() {
   // ═════════════════════════════════════════
   return (
     <View style={[styles.container, themeStyles.container]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* 1. 헤더: 제목 + 알림 */}
+      {/* 상단 고정 헤더 */}
+      <View style={[styles.headerWrapper, { backgroundColor: theme.background }]}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, themeStyles.headerTitle]}>기록</Text>
           <Pressable
@@ -789,7 +699,13 @@ export default function CalendarScreen() {
             <Bell size={24} color={theme.icon} strokeWidth={2} />
           </Pressable>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 2. 캘린더 카드 */}
         <View style={[styles.calendarCard, themeStyles.calendarCard]}>
           {renderSegmentControl()}
@@ -922,6 +838,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.background,
+  },
+  headerWrapper: {
+    zIndex: 1,
   },
   scrollView: {
     flex: 1,

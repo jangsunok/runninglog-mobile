@@ -14,10 +14,11 @@ import { ChevronLeft, Share2, Heart, TrendingUp, Mountain } from 'lucide-react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient as ExpoGradient } from 'expo-linear-gradient';
-import { MapView, Polyline, Marker } from '@/components/map-view';
+import { ActiveRunMapView } from '@/components/run/ActiveRunMapView';
 
 import { getActivity } from '@/lib/api/activities';
 import type { ActivityDetail, ActivitySplit, ApiCoordinate } from '@/types/activity';
+import type { Coordinate } from '@/types/run';
 import { ApiError } from '@/lib/api/client';
 import { BrandOrange, HeartRed, F } from '@/constants/theme';
 
@@ -45,11 +46,11 @@ const ZONE_LABELS = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5'];
 
 // ── Helpers ──────────────────────────────────
 
-function normalizeCoords(coords: [number, number][] | ApiCoordinate[]) {
-  return coords.map(c =>
+function normalizeCoords(coords: [number, number][] | ApiCoordinate[]): Coordinate[] {
+  return coords.map((c) =>
     Array.isArray(c)
       ? { latitude: c[0], longitude: c[1] }
-      : { latitude: c.lat, longitude: c.lng },
+      : { latitude: c.lat, longitude: c.lng }
   );
 }
 
@@ -508,27 +509,12 @@ export default function RunDetailScreen() {
       {/* ── Map ── */}
       <View style={st.mapWrap}>
         {route.length > 0 && mapRegion ? (
-          <MapView
+          <ActiveRunMapView
+            coordinates={route}
+            region={mapRegion}
+            isFollowingUser={false}
             style={StyleSheet.absoluteFill}
-            initialRegion={mapRegion}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            userInterfaceStyle="dark"
-          >
-            <Polyline coordinates={route} strokeColor={BrandOrange} strokeWidth={4} />
-            {activity.start_coordinates && (
-              <Marker coordinate={{ latitude: activity.start_coordinates.lat, longitude: activity.start_coordinates.lng }}>
-                <View style={st.badge}><Text style={st.badgeText}>출발</Text></View>
-              </Marker>
-            )}
-            {activity.end_coordinates && (
-              <Marker coordinate={{ latitude: activity.end_coordinates.lat, longitude: activity.end_coordinates.lng }}>
-                <View style={st.badge}><Text style={st.badgeText}>도착</Text></View>
-              </Marker>
-            )}
-          </MapView>
+          />
         ) : (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1F2937' }]} />
         )}

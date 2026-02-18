@@ -7,6 +7,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   Modal,
   TextInput,
 } from 'react-native';
@@ -16,9 +17,12 @@ import {
 } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { Bell } from 'lucide-react-native';
 import { Medals } from '@/constants/assets';
 import Toast from 'react-native-toast-message';
-import { BrandOrange, F } from '@/constants/theme';
+import { BrandOrange, Colors, F } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getCurrentGoal, createGoal, deleteGoal } from '@/lib/api/goals';
 import { getCurrentAchievements } from '@/lib/api/achievements';
 import type { Goal, GoalType as ApiGoalType, Achievement } from '@/types/api';
@@ -75,6 +79,12 @@ const DISTANCE_TYPE_MAP: Record<string, MedalId> = {
 // 메인 화면
 // ═══════════════════════════════════════════════════════════════
 export default function TrainingScreen() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
+
   const [goal, setGoal] = useState<Goal | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,34 +169,57 @@ export default function TrainingScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View
+        style={[
+          styles.container,
+          styles.center,
+          { backgroundColor: theme.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={BrandOrange} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* 상단 고정 헤더 */}
+      <View style={[styles.headerWrapper, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.text }]}>트레이닝</Text>
+          <Pressable
+            onPress={() => router.push('/(tabs)/my/notifications')}
+            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            hitSlop={12}
+          >
+            <Bell size={24} color={theme.icon} strokeWidth={2} />
+          </Pressable>
+        </View>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 헤더 ── */}
-        <View style={styles.header}>
-          <Text style={styles.title}>트레이닝</Text>
-        </View>
 
         {/* ── 목표 섹션 ── */}
         <View style={styles.goalSection}>
-          <Text style={styles.sectionTitle}>{monthLabel} 목표</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            {monthLabel} 목표
+          </Text>
 
           {hasGoal ? (
             <TouchableOpacity
-              style={styles.goalCard}
+              style={[
+                styles.goalCard,
+                { backgroundColor: isDark ? theme.surface : '#F5F5F5' },
+              ]}
               activeOpacity={0.7}
               onPress={handleGoalDelete}
             >
-              <Text style={styles.goalTitle}>{goalText}</Text>
+              <Text style={[styles.goalTitle, { color: theme.text }]}>
+                {goalText}
+              </Text>
               <View style={styles.progressBarBg}>
                 <View
                   style={[
@@ -198,7 +231,15 @@ export default function TrainingScreen() {
               <View style={styles.progressRow}>
                 <View style={styles.progressTextRow}>
                   <Text style={styles.progressValue}>{goal!.current_value}</Text>
-                  <Text style={styles.progressUnit}>{goalUnit} / {goal!.target_value}{goalUnit}</Text>
+                  <Text
+                    style={[
+                      styles.progressUnit,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {goalUnit} / {goal!.target_value}
+                    {goalUnit}
+                  </Text>
                 </View>
                 <View style={styles.percentBadge}>
                   <Text style={styles.percentText}>{progressPercent}%</Text>
@@ -206,7 +247,12 @@ export default function TrainingScreen() {
               </View>
             </TouchableOpacity>
           ) : (
-            <View style={styles.goalCardEmpty}>
+            <View
+              style={[
+                styles.goalCardEmpty,
+                { backgroundColor: isDark ? theme.surface : '#F5F5F5' },
+              ]}
+            >
               <TouchableOpacity
                 style={styles.setGoalButton}
                 onPress={() => setModalVisible(true)}
@@ -220,14 +266,40 @@ export default function TrainingScreen() {
         {/* ── 업적 섹션 ── */}
         <View style={styles.achievementSection}>
           <View style={styles.achievementHeader}>
-            <Text style={styles.sectionTitle}>{monthLabel} 업적</Text>
-            <TouchableOpacity style={styles.pastButton}>
-              <MaterialIcons name="emoji-events" size={16} color="#6B7280" />
-              <Text style={styles.pastButtonText}>지난 업적</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {monthLabel} 업적
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.pastButton,
+                {
+                  backgroundColor: isDark ? theme.surface : '#F9FAFB',
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <MaterialIcons
+                name="emoji-events"
+                size={16}
+                color={theme.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.pastButtonText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                지난 업적
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.achievementDesc}>
+          <Text
+            style={[
+              styles.achievementDesc,
+              { color: theme.textSecondary },
+            ]}
+          >
             {'거리를 달성하면 메달이 활성화되며,\n해당 월의 최고 기록이 표시돼요.'}
           </Text>
 
@@ -326,6 +398,9 @@ function GoalSettingModal({
   onSubmit: (type: GoalType, value: number) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
   // 모달은 별도 윈도우에 그려져 Android에서 insets.bottom이 0일 수 있음 → 메인 윈도우 metrics 또는 폴백 사용
   const bottomInset =
     insets.bottom ||
@@ -357,12 +432,26 @@ function GoalSettingModal({
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { paddingBottom: 40 + bottomInset }]}>
+        <View
+          style={[
+            styles.modalContent,
+            {
+              paddingBottom: 40 + bottomInset,
+              backgroundColor: theme.background,
+            },
+          ]}
+        >
           {/* 헤더 */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>이달의 목표 설정</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              이달의 목표 설정
+            </Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <MaterialIcons name="close" size={24} color="#6B7280" />
+              <MaterialIcons
+                name="close"
+                size={24}
+                color={theme.textSecondary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -375,20 +464,40 @@ function GoalSettingModal({
                   key={seg.key}
                   style={[
                     styles.segmentButton,
-                    isActive && styles.segmentButtonActive,
+                    {
+                      borderColor: theme.border,
+                      backgroundColor: theme.surface,
+                    },
+                    isActive && [
+                      styles.segmentButtonActive,
+                      {
+                        backgroundColor: isDark ? '#FFFFFF' : '#1F2937',
+                        borderColor: isDark ? '#FFFFFF' : '#1F2937',
+                      },
+                    ],
                   ]}
                   onPress={() => setSelectedType(seg.key)}
                 >
                   <MaterialIcons
                     name={seg.icon}
                     size={16}
-                    color={isActive ? '#FFFFFF' : '#6B7280'}
+                    color={
+                      isActive
+                        ? isDark
+                          ? '#111827'
+                          : '#FFFFFF'
+                        : theme.textSecondary
+                    }
                     style={styles.segmentIcon}
                   />
                   <Text
                     style={[
                       styles.segmentText,
-                      isActive && styles.segmentTextActive,
+                      { color: theme.textSecondary },
+                      isActive && [
+                        styles.segmentTextActive,
+                        { color: isDark ? '#111827' : '#FFFFFF' },
+                      ],
                     ]}
                   >
                     {seg.label}
@@ -399,26 +508,52 @@ function GoalSettingModal({
           </View>
 
           {/* 입력 필드 */}
-          <Text style={styles.inputLabel}>{LABEL_MAP[selectedType]}</Text>
-          <View style={styles.inputContainer}>
+          <Text style={[styles.inputLabel, { color: theme.text }]}>
+            {LABEL_MAP[selectedType]}
+          </Text>
+          <View
+            style={[
+              styles.inputContainer,
+              {
+                borderColor: theme.border,
+                backgroundColor: isDark ? theme.surface : '#F5F5F5',
+              },
+            ]}
+          >
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: theme.text }]}
               placeholder={PLACEHOLDER_MAP[selectedType]}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textTertiary}
               keyboardType="numeric"
               value={inputValue}
               onChangeText={setInputValue}
             />
-            <Text style={styles.inputUnit}>{UNIT_MAP[selectedType]}</Text>
+            <Text style={[styles.inputUnit, { color: theme.textSecondary }]}>
+              {UNIT_MAP[selectedType]}
+            </Text>
           </View>
 
           {/* 하단 버튼 */}
           <View style={styles.modalButtonRow}>
             <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
+              style={[
+                styles.modalButton,
+                styles.cancelButton,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: isDark ? theme.surface : '#F5F5F5',
+                },
+              ]}
               onPress={handleClose}
             >
-              <Text style={styles.cancelButtonText}>취소</Text>
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                취소
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.submitButton, !isValid && styles.submitButtonDisabled]}
@@ -440,7 +575,9 @@ function GoalSettingModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+  },
+  headerWrapper: {
+    zIndex: 1,
   },
   center: {
     alignItems: 'center',
@@ -452,6 +589,9 @@ const styles = StyleSheet.create({
 
   // ── 헤더 ──
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
   },

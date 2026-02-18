@@ -340,6 +340,17 @@ export default function RunActiveScreen() {
 
   const handleDismissSplit = useCallback(() => setShowSplit(false), []);
 
+  // 오버레이 UI를 고려한 지도 패딩 (훅은 early return 이전에 항상 호출)
+  const mapPadding = useMemo(
+    () => ({
+      top: insets.top + 260,
+      bottom: Math.max(insets.bottom, 16) + 90,
+      left: 0,
+      right: 0,
+    }),
+    [insets.top, insets.bottom]
+  );
+
   // 권한 로딩
   if (foreground === 'loading') {
     return (
@@ -371,14 +382,6 @@ export default function RunActiveScreen() {
   const coordinates = currentSession?.coordinates ?? [];
   const distanceKm = liveMetrics.distanceMeters / 1000;
   const paceStr = formatPace(liveMetrics.paceMinPerKm);
-
-  // 오버레이 UI를 고려한 지도 패딩 (현재 위치가 보이는 영역의 중심에 오도록)
-  const mapPadding = useMemo(() => ({
-    top: insets.top + 260,
-    bottom: Math.max(insets.bottom, 16) + 90,
-    left: 0,
-    right: 0,
-  }), [insets.top, insets.bottom]);
 
   const startPauseLabel =
     status === 'idle' ? '시작' : status === 'paused' ? '재개' : '일시중단';

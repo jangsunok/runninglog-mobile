@@ -57,23 +57,25 @@ export default function MyScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
+      {/* 상단 고정 헤더 */}
+      <View style={[styles.headerWrapper, { backgroundColor: c.background }]}>
         <View style={styles.header}>
           <ThemedText style={[styles.headerTitle, { fontFamily: F.inter700 }]}>
             마이페이지
           </ThemedText>
           <Pressable onPress={() => router.push('/(tabs)/my/notifications')}>
             <View style={styles.bellWrapper}>
-              <Bell size={22} color={c.textSecondary} />
+              <Bell size={24} color={c.textSecondary} />
               {unreadCount > 0 && <View style={styles.notificationDot} />}
             </View>
           </Pressable>
         </View>
+      </View>
 
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Profile Section */}
         <Pressable style={styles.profileSection}>
           <View style={[styles.avatar, { backgroundColor: c.lightGray }]}>
@@ -173,16 +175,18 @@ export default function MyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerWrapper: {
+    zIndex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
   },
   headerTitle: { fontSize: 28, lineHeight: 38 },
-  bellWrapper: { width: 22, height: 22 },
+  bellWrapper: { width: 24, height: 24 },
   notificationDot: {
     position: 'absolute',
     right: -1,

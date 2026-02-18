@@ -91,15 +91,8 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top, paddingBottom: insets.bottom + 32 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* 헤더: 날짜 + 알림 */}
+      {/* 상단 고정 헤더 */}
+      <View style={[styles.headerWrapper, { paddingTop: insets.top, backgroundColor: theme.background }]}>
         <View style={styles.headerRow}>
           <Text style={[styles.dateText, { color: theme.text }]}>
             {displayDate}
@@ -112,6 +105,16 @@ export default function HomeScreen() {
             <Bell size={24} color={theme.icon} strokeWidth={2} />
           </Pressable>
         </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 32 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* 주간 스트릭 캘린더 (기록 주간 뷰와 동일 디자인·간격, 배경 없음) */}
         <View style={styles.weekCalendar}>
@@ -233,6 +236,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerWrapper: {
+    zIndex: 1,
+  },
   scroll: {
     flex: 1,
   },
@@ -245,8 +251,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   dateText: {
     fontSize: 28,
