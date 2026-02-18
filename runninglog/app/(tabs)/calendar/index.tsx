@@ -10,12 +10,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Bell } from 'lucide-react-native';
 import { BrandOrange, BrandOrangeLight, Colors, C, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getActivities } from '@/lib/api/activities';
 import { getStatisticsSummary } from '@/lib/api/statistics';
+import { getCurrentGoal } from '@/lib/api/goals';
 import type { ActivityListItem, StatisticsSummary } from '@/types/activity';
+import type { Goal } from '@/types/api';
 
 // ─────────────────────────────────────────────
 // 뷰 모드 타입
@@ -105,16 +108,22 @@ export default function CalendarScreen() {
   const [activities, setActivities] = useState<ActivityListItem[]>([]);
   const [summary, setSummary] = useState<StatisticsSummary | null>(null);
   const [runDates, setRunDates] = useState<Record<string, number[]>>({});
+  const [goal, setGoal] = useState<Goal | null>(null);
+
+  const isViewingCurrentMonth =
+    currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1;
 
   useEffect(() => {
     (async () => {
       try {
-        const [actData, sumData] = await Promise.all([
+        const [actData, sumData, goalData] = await Promise.all([
           getActivities({ page: 1, page_size: 100 }),
           getStatisticsSummary(),
+          getCurrentGoal().catch(() => null),
         ]);
         setActivities(actData.results);
         setSummary(sumData);
+        setGoal(goalData ?? null);
 
         // 활동 날짜를 연-월별로 그룹핑
         const dateMap: Record<string, number[]> = {};
@@ -324,6 +333,18 @@ export default function CalendarScreen() {
       recordMain: { color: theme.text },
       recordDate: { color: theme.textSecondary },
       recordDivider: { backgroundColor: theme.border },
+      // 목표·업적 섹션 (라이트/다크)
+      goalSectionTitle: { color: theme.text },
+      goalCardEmptyBg: { backgroundColor: theme.surface },
+      goalEmptyLine1: { color: theme.text },
+      goalEmptyLine2: { color: theme.textSecondary },
+      achievementSectionTitle: { color: theme.text },
+      achievementDesc: { color: theme.textSecondary },
+      pastButtonBg: {
+        backgroundColor: isDark ? theme.surface : '#F9FAFB',
+        borderColor: theme.border,
+      },
+      pastButtonText: { color: theme.textSecondary },
     }),
     [theme, isDark]
   );
@@ -597,6 +618,87 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
+  // X월의 목표 (이미지 디자인: 목표 미설정 시 문구 + 목표 설정하기 버튼)
+  // ─────────────────────────────────────────
+  const hasGoal = isViewingCurrentMonth && goal !== null;
+
+  const renderGoalSection = () => (
+    <View style={styles.goalSection}>
+      <Text style={[styles.goalSectionTitle, themeStyles.goalSectionTitle]}>
+        {currentMonth}월의 목표
+      </Text>
+      {hasGoal ? (
+        <View style={[styles.goalCard, themeStyles.goalCardEmptyBg]}>
+          <Text style={[styles.goalTitle, themeStyles.goalEmptyLine1]}>
+            {goal!.target_value}
+            {goal!.goal_type === 'DISTANCE' ? 'km' : goal!.goal_type === 'TIME' ? '시간' : '회'} 달리기
+          </Text>
+          <View style={[styles.progressBarBg, { backgroundColor: theme.border }]}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${Math.min(Math.round((goal!.current_value / goal!.target_value) * 100), 100)}%` },
+              ]}
+            />
+          </View>
+          <View style={styles.progressRow}>
+            <Text style={[styles.progressValue, themeStyles.goalEmptyLine2]}>
+              {goal!.current_value} / {goal!.target_value}
+              {goal!.goal_type === 'DISTANCE' ? 'km' : goal!.goal_type === 'TIME' ? '시간' : '회'}
+            </Text>
+            <View style={styles.percentBadge}>
+              <Text style={styles.percentText}>
+                {Math.round((goal!.current_value / goal!.target_value) * 100)}%
+              </Text>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.goalCardEmpty, themeStyles.goalCardEmptyBg]}>
+          <Text style={[styles.goalEmptyLine1, themeStyles.goalEmptyLine1]}>
+            아직 이달의 목표가 없어요
+          </Text>
+          <Text style={[styles.goalEmptyLine2, themeStyles.goalEmptyLine2]}>
+            목표를 설정해 보세요
+          </Text>
+          <View style={styles.goalEmptyDivider} />
+          <TouchableOpacity
+            style={styles.setGoalButton}
+            onPress={() => router.push('/(tabs)/training')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.setGoalButtonText}>목표 설정하기</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
+  // ─────────────────────────────────────────
+  // X월의 업적 (이미지 디자인: 설명 + 지난 업적 버튼)
+  // ─────────────────────────────────────────
+  const renderAchievementSection = () => (
+    <View style={styles.achievementSection}>
+      <View style={styles.achievementHeader}>
+        <Text style={[styles.achievementSectionTitle, themeStyles.achievementSectionTitle]}>
+          {currentMonth}월의 업적
+        </Text>
+        <TouchableOpacity
+          style={[styles.pastButton, themeStyles.pastButtonBg]}
+          onPress={() => router.push('/(tabs)/training')}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="emoji-events" size={16} color={theme.textSecondary} />
+          <Text style={[styles.pastButtonText, themeStyles.pastButtonText]}>지난 업적</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={[styles.achievementDesc, themeStyles.achievementDesc]}>
+        거리를 달성하면 메달이 활성화되며, 해당 월의 최고 기록이 표시돼요.
+      </Text>
+    </View>
+  );
+
+  // ─────────────────────────────────────────
   // 전체 기록 섹션 (pen 디자인: 통합 카드)
   // ─────────────────────────────────────────
   const renderSummarySection = () => (
@@ -721,6 +823,12 @@ export default function CalendarScreen() {
           {viewMode === 'monthly' && renderMonthlyView()}
           {viewMode === 'yearly' && renderYearlyView()}
         </View>
+
+        {/* 3. X월의 목표 */}
+        {renderGoalSection()}
+
+        {/* 4. X월의 업적 */}
+        {renderAchievementSection()}
 
         {/* 전체 기록 요약 */}
         {renderSummarySection()}
@@ -983,7 +1091,123 @@ const styles = StyleSheet.create({
     fontFamily: F.inter700,
   },
 
-  // ─── 3. 전체 기록 요약 ───
+  // ─── X월의 목표 ───
+  goalSection: {
+    paddingHorizontal: 20,
+    marginTop: 24,
+    gap: 12,
+  },
+  goalSectionTitle: {
+    fontSize: 18,
+    fontFamily: F.inter600,
+  },
+  goalCard: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  goalTitle: {
+    fontSize: 16,
+    fontFamily: F.inter600,
+    marginBottom: 12,
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.border,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: BrandOrange,
+    borderRadius: 3,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  progressValue: {
+    fontSize: 14,
+    fontFamily: F.inter500,
+  },
+  percentBadge: {
+    backgroundColor: BrandOrange,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  percentText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: F.inter700,
+  },
+  goalCardEmpty: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  goalEmptyLine1: {
+    fontSize: 16,
+    fontFamily: F.inter600,
+    marginBottom: 4,
+  },
+  goalEmptyLine2: {
+    fontSize: 14,
+    fontFamily: F.inter500,
+  },
+  goalEmptyDivider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 12,
+  },
+  setGoalButton: {
+    backgroundColor: BrandOrange,
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    alignSelf: 'flex-start',
+  },
+  setGoalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: F.inter700,
+  },
+
+  // ─── X월의 업적 ───
+  achievementSection: {
+    paddingHorizontal: 20,
+    marginTop: 24,
+    gap: 12,
+  },
+  achievementHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  achievementSectionTitle: {
+    fontSize: 18,
+    fontFamily: F.inter600,
+  },
+  pastButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    height: 32,
+  },
+  pastButtonText: {
+    fontSize: 14,
+    fontFamily: F.inter500,
+  },
+  achievementDesc: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+
+  // ─── 전체 기록 요약 ───
   summarySection: {
     paddingHorizontal: 20,
     marginTop: 24,

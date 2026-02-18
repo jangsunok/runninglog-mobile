@@ -1936,8 +1936,8 @@
     {
       "type": "frame",
       "id": "YCCvM",
-      "x": -467,
-      "y": 3261,
+      "x": -383,
+      "y": 3264,
       "name": "Goal Setting Modal",
       "width": 390,
       "height": 341,
@@ -2394,7 +2394,7 @@
     {
       "type": "frame",
       "id": "LLRIj",
-      "x": -1757,
+      "x": -2211,
       "y": 3229,
       "name": "Calendar Home",
       "width": 390,
@@ -18410,7 +18410,7 @@
     {
       "type": "frame",
       "id": "5cVNl",
-      "x": -1341,
+      "x": -1681,
       "y": 3229,
       "name": "Calendar Home",
       "width": 390,
@@ -20450,7 +20450,7 @@
     {
       "type": "frame",
       "id": "SPI1a",
-      "x": -1757,
+      "x": -2211,
       "y": 4073,
       "name": "Bottom Navigation",
       "width": 390,
@@ -23774,7 +23774,7 @@
     {
       "type": "group",
       "id": "OkV1C",
-      "x": -2034,
+      "x": -2488,
       "y": 3798,
       "children": [
         {
@@ -23821,7 +23821,7 @@
     {
       "type": "icon_font",
       "id": "TWbT5",
-      "x": -2085,
+      "x": -2539,
       "y": 3891,
       "name": "medal3Icon",
       "width": 36,
@@ -23833,464 +23833,18 @@
     {
       "type": "frame",
       "id": "9cNi8",
-      "x": -872,
-      "y": 3261,
+      "x": -788,
+      "y": 3264,
       "name": "Goal Setting Modal",
       "width": 390,
       "height": 341,
       "fill": "$background",
-      "cornerRadius": 24,
-      "children": [
-        {
-          "type": "frame",
-          "id": "DheS9",
-          "name": "container",
-          "width": "fill_container",
-          "fill": "$background",
-          "cornerRadius": [
-            24,
-            24,
-            0,
-            0
-          ],
-          "layout": "vertical",
-          "children": [
-            {
-              "type": "frame",
-              "id": "SeWUD",
-              "name": "header",
-              "width": "fill_container",
-              "height": 60,
-              "padding": [
-                0,
-                20
-              ],
-              "justifyContent": "space_between",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "YJOVJ",
-                  "name": "titleText",
-                  "fill": "$text",
-                  "content": "이달의 목표 설정",
-                  "fontFamily": "Inter",
-                  "fontSize": 20,
-                  "fontWeight": "700"
-                },
-                {
-                  "type": "icon_font",
-                  "id": "j8MNf",
-                  "name": "closeBtn",
-                  "width": 24,
-                  "height": 24,
-                  "iconFontName": "close",
-                  "iconFontFamily": "Material Symbols Rounded",
-                  "fill": "$textSecondary"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Eyqqf",
-              "name": "content",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 24,
-              "padding": [
-                0,
-                20,
-                20,
-                20
-              ],
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "Sb1un",
-                  "name": "typeSection",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "4Lv8m",
-                      "name": "typeButtons",
-                      "width": "fill_container",
-                      "gap": 8,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "vX1I6",
-                          "name": "distanceBtn",
-                          "width": "fill_container",
-                          "height": 48,
-                          "fill": "$darkGray",
-                          "cornerRadius": 12,
-                          "gap": 6,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon_font",
-                              "id": "Uca3H",
-                              "name": "distanceIcon",
-                              "width": 20,
-                              "height": 20,
-                              "iconFontName": "route",
-                              "iconFontFamily": "Material Symbols Rounded",
-                              "fill": "$background"
-                            },
-                            {
-                              "type": "text",
-                              "id": "cq6WJ",
-                              "name": "distanceText",
-                              "fill": "$background",
-                              "content": "거리",
-                              "fontFamily": "Inter",
-                              "fontSize": 16,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Kkfvk",
-                          "name": "timeBtn",
-                          "width": "fill_container",
-                          "height": 48,
-                          "fill": "$lightGray",
-                          "cornerRadius": 12,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1
-                          },
-                          "gap": 6,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon_font",
-                              "id": "gh9SZ",
-                              "name": "timeIcon",
-                              "width": 20,
-                              "height": 20,
-                              "iconFontName": "schedule",
-                              "iconFontFamily": "Material Symbols Rounded",
-                              "fill": "$text"
-                            },
-                            {
-                              "type": "text",
-                              "id": "KYpDY",
-                              "name": "timeText",
-                              "fill": "$text",
-                              "content": "시간",
-                              "fontFamily": "Inter",
-                              "fontSize": 16,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "EszjS",
-                          "name": "countBtn",
-                          "width": "fill_container",
-                          "height": 48,
-                          "fill": "$lightGray",
-                          "cornerRadius": 12,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1
-                          },
-                          "gap": 6,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon_font",
-                              "id": "rnpzY",
-                              "name": "countIcon",
-                              "width": 20,
-                              "height": 20,
-                              "iconFontName": "tag",
-                              "iconFontFamily": "Material Symbols Rounded",
-                              "fill": "$text"
-                            },
-                            {
-                              "type": "text",
-                              "id": "W5Jb4",
-                              "name": "countText",
-                              "fill": "$text",
-                              "content": "횟수",
-                              "fontFamily": "Inter",
-                              "fontSize": 16,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "PfQwN",
-                  "name": "distanceSection",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 12,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "4BZlb",
-                      "name": "distanceLabel",
-                      "fill": "$textSecondary",
-                      "content": "목표 거리",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "tmwZL",
-                      "name": "distanceInputWrapper",
-                      "width": "fill_container",
-                      "height": 56,
-                      "fill": "$background",
-                      "cornerRadius": 12,
-                      "stroke": {
-                        "align": "inside",
-                        "thickness": 1,
-                        "fill": "$lightGray"
-                      },
-                      "gap": 8,
-                      "padding": [
-                        0,
-                        16
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "6wbVr",
-                          "name": "distanceInput",
-                          "fill": "$text",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "50",
-                          "textAlign": "right",
-                          "fontFamily": "Inter",
-                          "fontSize": 24,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "h8h2J",
-                          "name": "distanceUnit",
-                          "fill": "$textSecondary",
-                          "content": "km",
-                          "fontFamily": "Inter",
-                          "fontSize": 18,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "B1zzS",
-                  "name": "timeSection",
-                  "enabled": false,
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 12,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "mQiwx",
-                      "name": "timeLabel",
-                      "fill": "$textSecondary",
-                      "content": "목표 시간",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "iiPGI",
-                      "name": "timeInputWrapper",
-                      "width": "fill_container",
-                      "height": 56,
-                      "fill": "$surface",
-                      "cornerRadius": 12,
-                      "gap": 8,
-                      "padding": [
-                        0,
-                        16
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "ehv0D",
-                          "name": "timeInput",
-                          "fill": "$text",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "300",
-                          "textAlign": "right",
-                          "fontFamily": "Inter",
-                          "fontSize": 24,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "HUXO2",
-                          "name": "timeUnit",
-                          "fill": "$textSecondary",
-                          "content": "분",
-                          "fontFamily": "Inter",
-                          "fontSize": 18,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "hqFtR",
-                  "name": "countSection",
-                  "enabled": false,
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 12,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "lIhIS",
-                      "name": "countLabel",
-                      "fill": "$textSecondary",
-                      "content": "목표 횟수",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Q8IvT",
-                      "name": "countInputWrapper",
-                      "width": "fill_container",
-                      "height": 56,
-                      "fill": "$surface",
-                      "cornerRadius": 12,
-                      "gap": 8,
-                      "padding": [
-                        0,
-                        16
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "GXptx",
-                          "name": "countInput",
-                          "fill": "$text",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "15",
-                          "textAlign": "right",
-                          "fontFamily": "Inter",
-                          "fontSize": 24,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "czfya",
-                          "name": "countUnit",
-                          "fill": "$textSecondary",
-                          "content": "회",
-                          "fontFamily": "Inter",
-                          "fontSize": 18,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "LlzRC",
-                  "name": "buttonSection",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    20,
-                    0,
-                    0,
-                    0
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "3FjOR",
-                      "name": "cancelBtn",
-                      "width": "fill_container",
-                      "height": 52,
-                      "fill": "$lightGray",
-                      "cornerRadius": 12,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "qdG76",
-                          "name": "cancelText",
-                          "fill": "$text",
-                          "content": "취소",
-                          "fontFamily": "Inter",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ZUEAP",
-                      "name": "confirmBtn",
-                      "width": "fill_container",
-                      "height": 52,
-                      "fill": "$BrandOrange",
-                      "cornerRadius": 12,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "OSEtf",
-                          "name": "confirmText",
-                          "fill": "$background",
-                          "content": "설정하기",
-                          "fontFamily": "Inter",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "cornerRadius": 24
     },
     {
       "type": "prompt",
       "id": "fqHFL",
-      "x": -2047.096230855705,
+      "x": -2501.096230855705,
       "y": 3304.410212833429,
       "width": 250,
       "height": 219,
@@ -24299,8 +23853,8 @@
     {
       "type": "note",
       "id": "2r8xj",
-      "x": -654,
-      "y": 3700,
+      "x": 96,
+      "y": 3276,
       "width": 250,
       "height": 219,
       "content": "- 목표 {거리} : ___km\n- 목표 {시간} : ___분\n- 목표 {횟수} : ___회"
@@ -25634,7 +25188,7 @@
     {
       "type": "icon_font",
       "id": "5hYbF",
-      "x": -2136,
+      "x": -2590,
       "y": 3891,
       "name": "medal3Icon",
       "width": 36,
@@ -33150,6 +32704,1162 @@
               "iconFontName": "user",
               "iconFontFamily": "lucide",
               "fill": "#9CA3AF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nAe0f",
+      "x": -1267,
+      "y": 3229,
+      "name": "Calendar Home - Dark",
+      "width": 390,
+      "height": 844,
+      "fill": "#0D0D0D",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "VbcSW",
+          "name": "header",
+          "width": "fill_container",
+          "padding": [
+            16,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "hyEFP",
+              "name": "headerTitle",
+              "fill": "#FAFAFA",
+              "content": "트레이닝",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "700"
+            },
+            {
+              "type": "icon_font",
+              "id": "QPvgG",
+              "name": "menuIcon3",
+              "width": 22,
+              "height": 22,
+              "iconFontName": "bell",
+              "iconFontFamily": "lucide",
+              "fill": "#9CA3AF"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "OH02c",
+          "name": "shoeSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "padding": [
+            8,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "8TMpr",
+              "name": "shoeSectionHeader",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "naKcH",
+                  "name": "shoeSectionTitle",
+                  "fill": "#FAFAFA",
+                  "content": "1월의 목표",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ssry7",
+              "name": "shoeCard",
+              "width": "fill_container",
+              "fill": "#262626",
+              "cornerRadius": 12,
+              "gap": 16,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rhrgE",
+                  "name": "shoeInfo",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b6DGN",
+                      "name": "shoeName",
+                      "fill": "#FAFAFA",
+                      "content": "아직 이달의 목표가 없어요",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cX0Lb",
+                      "name": "shoeDistance",
+                      "gap": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "tHUbt",
+                          "name": "shoeDistanceUnit",
+                          "fill": "#9CA3AF",
+                          "content": "목표를 설정해 보세요",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H2aki",
+                      "name": "shoeProgressBg",
+                      "width": "fill_container",
+                      "height": 6,
+                      "fill": "#404040",
+                      "cornerRadius": 3,
+                      "layout": "none"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "q3VfZ",
+                  "name": "goalBadge",
+                  "fill": "#FF6F00",
+                  "cornerRadius": 12,
+                  "padding": [
+                    4,
+                    10
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "u5e5W",
+                      "name": "goalBadgeText",
+                      "fill": "#FFFFFF",
+                      "content": "목표 설정하기",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kUb0z",
+              "name": "titleContainer",
+              "width": "fill_container",
+              "height": 26,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XWPlW",
+                  "name": "shoeSectionTitle",
+                  "fill": "#FAFAFA",
+                  "content": "1월의 업적",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "fE1qp",
+                  "name": "btnFrame",
+                  "height": 32,
+                  "fill": "#2A2A2A",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#404040"
+                  },
+                  "gap": 4,
+                  "padding": [
+                    6,
+                    12
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "ZZyan",
+                      "name": "nextMonth",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "medal",
+                      "iconFontFamily": "lucide",
+                      "fill": "#9CA3AF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "NlTWl",
+                      "name": "monthTitle",
+                      "rotation": 0.0015173961450506883,
+                      "fill": "#E5E7EB",
+                      "content": "지난 업적",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YKjSo",
+              "name": "titleContainer",
+              "rotation": 0.10534458587405077,
+              "width": 350,
+              "height": 43,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "jbbSc",
+                  "name": "shoeSectionTitle",
+                  "fill": "#FAFAFA",
+                  "content": "거리를 달성하면 메달이 활성화되며, \n해당 월의 최고 기록이 표시돼요.",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "DheS9",
+      "x": -788,
+      "y": 3264,
+      "name": "container",
+      "width": "fill_container(390)",
+      "fill": "$background",
+      "cornerRadius": [
+        24,
+        24,
+        0,
+        0
+      ],
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "SeWUD",
+          "name": "header",
+          "width": "fill_container",
+          "height": 60,
+          "padding": [
+            0,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "YJOVJ",
+              "name": "titleText",
+              "fill": "$text",
+              "content": "이달의 목표 설정",
+              "fontFamily": "Inter",
+              "fontSize": 20,
+              "fontWeight": "700"
+            },
+            {
+              "type": "icon_font",
+              "id": "j8MNf",
+              "name": "closeBtn",
+              "width": 24,
+              "height": 24,
+              "iconFontName": "close",
+              "iconFontFamily": "Material Symbols Rounded",
+              "fill": "$textSecondary"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Eyqqf",
+          "name": "content",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            0,
+            20,
+            20,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Sb1un",
+              "name": "typeSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "4Lv8m",
+                  "name": "typeButtons",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vX1I6",
+                      "name": "distanceBtn",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$darkGray",
+                      "cornerRadius": 12,
+                      "gap": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "Uca3H",
+                          "name": "distanceIcon",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "route",
+                          "iconFontFamily": "Material Symbols Rounded",
+                          "fill": "$background"
+                        },
+                        {
+                          "type": "text",
+                          "id": "cq6WJ",
+                          "name": "distanceText",
+                          "fill": "$background",
+                          "content": "거리",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Kkfvk",
+                      "name": "timeBtn",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$lightGray",
+                      "cornerRadius": 12,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1
+                      },
+                      "gap": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "gh9SZ",
+                          "name": "timeIcon",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "schedule",
+                          "iconFontFamily": "Material Symbols Rounded",
+                          "fill": "$text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "KYpDY",
+                          "name": "timeText",
+                          "fill": "$text",
+                          "content": "시간",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EszjS",
+                      "name": "countBtn",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$lightGray",
+                      "cornerRadius": 12,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1
+                      },
+                      "gap": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "rnpzY",
+                          "name": "countIcon",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "tag",
+                          "iconFontFamily": "Material Symbols Rounded",
+                          "fill": "$text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "W5Jb4",
+                          "name": "countText",
+                          "fill": "$text",
+                          "content": "횟수",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PfQwN",
+              "name": "distanceSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "4BZlb",
+                  "name": "distanceLabel",
+                  "fill": "$textSecondary",
+                  "content": "목표 거리",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "tmwZL",
+                  "name": "distanceInputWrapper",
+                  "width": "fill_container",
+                  "height": 56,
+                  "fill": "$background",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$lightGray"
+                  },
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "6wbVr",
+                      "name": "distanceInput",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "50",
+                      "textAlign": "right",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "h8h2J",
+                      "name": "distanceUnit",
+                      "fill": "$textSecondary",
+                      "content": "km",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "B1zzS",
+              "name": "timeSection",
+              "enabled": false,
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mQiwx",
+                  "name": "timeLabel",
+                  "fill": "$textSecondary",
+                  "content": "목표 시간",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "iiPGI",
+                  "name": "timeInputWrapper",
+                  "width": "fill_container",
+                  "height": 56,
+                  "fill": "$surface",
+                  "cornerRadius": 12,
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ehv0D",
+                      "name": "timeInput",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "300",
+                      "textAlign": "right",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HUXO2",
+                      "name": "timeUnit",
+                      "fill": "$textSecondary",
+                      "content": "분",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hqFtR",
+              "name": "countSection",
+              "enabled": false,
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lIhIS",
+                  "name": "countLabel",
+                  "fill": "$textSecondary",
+                  "content": "목표 횟수",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "Q8IvT",
+                  "name": "countInputWrapper",
+                  "width": "fill_container",
+                  "height": 56,
+                  "fill": "$surface",
+                  "cornerRadius": 12,
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GXptx",
+                      "name": "countInput",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "15",
+                      "textAlign": "right",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "czfya",
+                      "name": "countUnit",
+                      "fill": "$textSecondary",
+                      "content": "회",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LlzRC",
+              "name": "buttonSection",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                20,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "3FjOR",
+                  "name": "cancelBtn",
+                  "width": "fill_container",
+                  "height": 52,
+                  "fill": "$lightGray",
+                  "cornerRadius": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qdG76",
+                      "name": "cancelText",
+                      "fill": "$text",
+                      "content": "취소",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZUEAP",
+                  "name": "confirmBtn",
+                  "width": "fill_container",
+                  "height": 52,
+                  "fill": "$BrandOrange",
+                  "cornerRadius": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OSEtf",
+                      "name": "confirmText",
+                      "fill": "$background",
+                      "content": "설정하기",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "EgH7O",
+      "x": -383,
+      "y": 3655,
+      "name": "Goal Setting Modal - Dark",
+      "width": 390,
+      "height": 358,
+      "fill": "#0D0D0D",
+      "cornerRadius": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "n65m0",
+          "name": "container",
+          "width": "fill_container",
+          "fill": "#0D0D0D",
+          "cornerRadius": [
+            24,
+            24,
+            0,
+            0
+          ],
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "RV0Pi",
+              "name": "header",
+              "width": "fill_container",
+              "height": 60,
+              "padding": [
+                0,
+                20
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "14MNw",
+                  "name": "titleText",
+                  "fill": "#FAFAFA",
+                  "content": "이달의 목표 설정",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "bKjMq",
+                  "name": "closeBtn",
+                  "width": 24,
+                  "height": 24,
+                  "iconFontName": "close",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "fill": "#9CA3AF"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DCTMe",
+              "name": "content",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                0,
+                20,
+                20,
+                20
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "4xNRV",
+                  "name": "typeSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NypYq",
+                      "name": "typeButtons",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "UO3wH",
+                          "name": "distanceBtn",
+                          "width": "fill_container",
+                          "height": 48,
+                          "fill": "#3A3A3A",
+                          "cornerRadius": 12,
+                          "gap": 6,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "KaNCb",
+                              "name": "distanceIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "route",
+                              "iconFontFamily": "Material Symbols Rounded",
+                              "fill": "#FAFAFA"
+                            },
+                            {
+                              "type": "text",
+                              "id": "kfvUl",
+                              "name": "distanceText",
+                              "fill": "#FAFAFA",
+                              "content": "거리",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Cs4Ee",
+                          "name": "timeBtn",
+                          "width": "fill_container",
+                          "height": 48,
+                          "fill": "#1A1A1A",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#404040"
+                          },
+                          "gap": 6,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "Q7ATZ",
+                              "name": "timeIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "schedule",
+                              "iconFontFamily": "Material Symbols Rounded",
+                              "fill": "#9CA3AF"
+                            },
+                            {
+                              "type": "text",
+                              "id": "wz3cJ",
+                              "name": "timeText",
+                              "fill": "#FAFAFA",
+                              "content": "시간",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "eSyzN",
+                          "name": "countBtn",
+                          "width": "fill_container",
+                          "height": 48,
+                          "fill": "#1A1A1A",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#404040"
+                          },
+                          "gap": 6,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "jAyOg",
+                              "name": "countIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "tag",
+                              "iconFontFamily": "Material Symbols Rounded",
+                              "fill": "#9CA3AF"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Chm2Y",
+                              "name": "countText",
+                              "fill": "#FAFAFA",
+                              "content": "횟수",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DbuLq",
+                  "name": "distanceSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YgHhW",
+                      "name": "distanceLabel",
+                      "fill": "#9CA3AF",
+                      "content": "목표 거리",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "u77u8",
+                      "name": "distanceInputWrapper",
+                      "width": "fill_container",
+                      "height": 56,
+                      "fill": "#1A1A1A",
+                      "cornerRadius": 12,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#404040"
+                      },
+                      "gap": 8,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "I5JEa",
+                          "name": "distanceInput",
+                          "fill": "$textTertiary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "목표 거리를 입력해주세요",
+                          "textAlign": "right",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "300"
+                        },
+                        {
+                          "type": "text",
+                          "id": "9xJr4",
+                          "name": "distanceUnit",
+                          "fill": "#9CA3AF",
+                          "content": "km",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Xbu7Y",
+                  "name": "timeSection",
+                  "enabled": false,
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RiSAp",
+                      "name": "timeLabel",
+                      "fill": "#9CA3AF",
+                      "content": "목표 시간",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pFlzg",
+                      "name": "timeInputWrapper",
+                      "width": "fill_container",
+                      "height": 56,
+                      "fill": "#262626",
+                      "cornerRadius": 12,
+                      "gap": 8,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "I9C5F",
+                          "name": "timeInput",
+                          "fill": "#FAFAFA",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "300",
+                          "textAlign": "right",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "PqoWM",
+                          "name": "timeUnit",
+                          "fill": "#9CA3AF",
+                          "content": "분",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rFN5L",
+                  "name": "countSection",
+                  "enabled": false,
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "KaNP8",
+                      "name": "countLabel",
+                      "fill": "#9CA3AF",
+                      "content": "목표 횟수",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UAnCE",
+                      "name": "countInputWrapper",
+                      "width": "fill_container",
+                      "height": 56,
+                      "fill": "#262626",
+                      "cornerRadius": 12,
+                      "gap": 8,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "2JXnl",
+                          "name": "countInput",
+                          "fill": "#FAFAFA",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "15",
+                          "textAlign": "right",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "KTs16",
+                          "name": "countUnit",
+                          "fill": "#9CA3AF",
+                          "content": "회",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "3NU5A",
+                  "name": "buttonSection",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    20,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Llo41",
+                      "name": "cancelBtn",
+                      "width": "fill_container",
+                      "height": 52,
+                      "fill": "#2A2A2A",
+                      "cornerRadius": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "3RBLr",
+                          "name": "cancelText",
+                          "fill": "#FAFAFA",
+                          "content": "취소",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mvf51",
+                      "name": "confirmBtn",
+                      "width": "fill_container",
+                      "height": 52,
+                      "fill": "$BrandOrange",
+                      "cornerRadius": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "NlT3f",
+                          "name": "confirmText",
+                          "fill": "#FAFAFA",
+                          "content": "설정하기",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
