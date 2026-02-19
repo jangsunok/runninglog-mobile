@@ -15,9 +15,7 @@ import {
   getStatisticsWeekly,
   getStatisticsYearly,
 } from '@/lib/api/statistics';
-import { getCurrentGoal } from '@/lib/api/goals';
 import type { ActivityListItem, StatisticsPeriodItem } from '@/types/activity';
-import type { Goal } from '@/types/api';
 
 // ─────────────────────────────────────────────
 // 뷰 모드 타입
@@ -129,8 +127,13 @@ function getPeriodRange(
   currentMonth: number
 ): { from: string; to: string } {
   if (viewMode === 'weekly') {
-    const from = new Date(weekSunday);
-    const to = new Date(weekSunday);
+    // 주간 통계는 백엔드 기준으로 "월요일 시작 ~ 일요일 종료" 주간을 사용한다.
+    // UI에서는 weekSunday(일요일)를 기준으로 표시하지만,
+    // 실제 from/to는 weekSunday 다음 날인 월요일부터 7일 범위로 맞춘다.
+    const monday = new Date(weekSunday);
+    monday.setDate(monday.getDate() + 1);
+    const from = new Date(monday);
+    const to = new Date(monday);
     to.setDate(to.getDate() + 6);
     return { from: toISODate(from), to: toISODate(to) };
   }
@@ -207,18 +210,10 @@ export default function CalendarScreen() {
   const [periodSummary, setPeriodSummary] = useState<StatisticsPeriodItem | null>(null);
   const [activities, setActivities] = useState<ActivityListItem[]>([]);
   const [runDates, setRunDates] = useState<Record<string, number[]>>({});
-  const [goal, setGoal] = useState<Goal | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
 
   const isViewingCurrentMonth =
     currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1;
-
-  // 목표는 최초 1회만 로드
-  useEffect(() => {
-    getCurrentGoal()
-      .then(setGoal)
-      .catch(() => setGoal(null));
-  }, []);
 
   // 주간/월간/연간 달력 이동 시 해당 기간 전체기록·상세기록·캘린더 점 다시 불러오기
   const { from: periodFrom, to: periodTo } = useMemo(
@@ -750,7 +745,9 @@ export default function CalendarScreen() {
             <Text style={[styles.statLabel, themeStyles.statLabel]}>누적 시간</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>{periodSummary?.average_pace_display ?? '-'}</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>
+              {periodSummary?.average_pace_display?.trim() || "00'00\""}
+            </Text>
             <Text style={[styles.statLabel, themeStyles.statLabel]}>평균 페이스</Text>
           </View>
         </View>
