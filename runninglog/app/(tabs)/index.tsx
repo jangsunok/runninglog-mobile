@@ -1,11 +1,20 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell, Heart, Share2 } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, Pressable, Text, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
 import { BrandOrange, BrandOrangeLight, Colors, F, HeartRed } from '@/constants/theme';
@@ -63,6 +72,44 @@ function formatDurationHHMMSS(value?: string | null): string {
   return raw;
 }
 
+function parseDurationToSeconds(value?: string | null): number {
+  if (!value) return 0;
+
+  const raw = value.trim();
+  if (!raw) return 0;
+
+  const parts = raw.split(':').map((p) => Number(p));
+  if (parts.some((n) => Number.isNaN(n))) {
+    return 0;
+  }
+
+  if (parts.length === 2) {
+    const [m, s] = parts;
+    return m * 60 + s;
+  }
+
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    return h * 3600 + m * 60 + s;
+  }
+
+  return 0;
+}
+
+function formatSecondsToHHMMSS(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return '00:00:00';
+  }
+
+  const s = Math.floor(totalSeconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+
+  const parts = [h, m, sec].map((n) => n.toString().padStart(2, '0'));
+  return parts.join(':');
+}
+
 // ─── 컴포넌트 ────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -75,6 +122,20 @@ export default function HomeScreen() {
   const [activitiesList, setActivitiesList] = useState<ActivityListItem[]>([]);
   const [runDays, setRunDays] = useState<Set<number>>(new Set());
   const aiMessage = useCoachingMessage(activitiesList);
+
+  const [displayDistance, setDisplayDistance] = useState(0);
+  const [displayDurationSeconds, setDisplayDurationSeconds] = useState(0);
+
+  const distanceRafRef = useRef<number | null>(null);
+  const durationRafRef = useRef<number | null>(null);
+
+  // 주간 스트릭 캘린더 애니메이션
+  const weekCalendarProgress = useSharedValue(0);
+  const todayBadgeScale = useSharedValue(1);
+
+  // RUN 버튼 상시 펄스 + 터치 스케일
+  const runButtonBaseScale = useSharedValue(1);
+  const runButtonPressScale = useSharedValue(1);
 
   const today = new Date();
   const displayDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
@@ -111,6 +172,144 @@ export default function HomeScreen() {
   }, [fetchData]);
 
   const weekDays = getWeekCalendar(runDays);
+
+  const startDistanceAnimation = useCallback((targetKm: number) => {
+    const safeTarget = Number.isFinite(targetKm) ? targetKm : 0;
+
+    if (distanceRafRef.current != null) {
+      cancelAnimationFrame(distanceRafRef.current);
+    }
+
+    const startTime = Date.now();
+    const durationMs = 700;
+
+    const step = () => {
+      const now = Date.now();
+      const t = Math.min(1, (now - startTime) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const value = safeTarget * eased;
+      setDisplayDistance(value);
+
+      if (t < 1) {
+        distanceRafRef.current = requestAnimationFrame(step);
+      } else {
+        setDisplayDistance(safeTarget);
+        distanceRafRef.current = null;
+      }
+    };
+
+    step();
+  }, []);
+
+  const startDurationAnimation = useCallback((targetSeconds: number) => {
+    const safeTarget = Number.isFinite(targetSeconds) ? targetSeconds : 0;
+
+    if (durationRafRef.current != null) {
+      cancelAnimationFrame(durationRafRef.current);
+    }
+
+    const startTime = Date.now();
+    const durationMs = 700;
+
+    const step = () => {
+      const now = Date.now();
+      const t = Math.min(1, (now - startTime) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const value = safeTarget * eased;
+      setDisplayDurationSeconds(value);
+
+      if (t < 1) {
+        durationRafRef.current = requestAnimationFrame(step);
+      } else {
+        setDisplayDurationSeconds(safeTarget);
+        durationRafRef.current = null;
+      }
+    };
+
+    step();
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (distanceRafRef.current != null) {
+        cancelAnimationFrame(distanceRafRef.current);
+      }
+      if (durationRafRef.current != null) {
+        cancelAnimationFrame(durationRafRef.current);
+      }
+    },
+    []
+  );
+
+  /** 기록(거리/타이머) + 스트릭 캘린더 애니메이션 실행 */
+  const runRecordAndStreakAnimations = useCallback(() => {
+    // 거리 / 타이머 숫자 카운트 업
+    const targetDistance = latestActivity ? latestActivity.distance_km : 0;
+    const targetDurationSeconds = latestActivity
+      ? parseDurationToSeconds(latestActivity.duration_display)
+      : 0;
+
+    startDistanceAnimation(targetDistance);
+    startDurationAnimation(targetDurationSeconds);
+
+    // 주간 스트릭 캘린더
+    if (runDays.size > 0) {
+      weekCalendarProgress.value = 0;
+      weekCalendarProgress.value = withTiming(1, {
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+      });
+
+      const todayDate = new Date().getDate();
+      if (runDays.has(todayDate)) {
+        todayBadgeScale.value = 0.9;
+        todayBadgeScale.value = withSequence(
+          withTiming(1.06, {
+            duration: 550,
+            easing: Easing.out(Easing.cubic),
+          }),
+          withTiming(1, {
+            duration: 500,
+            easing: Easing.out(Easing.cubic),
+          })
+        );
+      }
+    }
+  }, [latestActivity, runDays, startDistanceAnimation, startDurationAnimation]);
+
+  // 화면에 진입할 때마다 기록·스트릭 애니메이션 실행
+  useFocusEffect(
+    useCallback(() => {
+      runRecordAndStreakAnimations();
+    }, [runRecordAndStreakAnimations])
+  );
+
+  // 데이터 로드/갱신 시에도 한 번 실행 (첫 로드 시 useFocusEffect가 빈 데이터로 먼저 돌 수 있음)
+  useEffect(() => {
+    runRecordAndStreakAnimations();
+  }, [runRecordAndStreakAnimations]);
+
+  // RUN 버튼 숨쉬기(펄스) 애니메이션
+  useEffect(() => {
+    runButtonBaseScale.value = withRepeat(
+      withTiming(1.04, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, [runButtonBaseScale]);
+
+  const runButtonAnimatedStyle = useAnimatedStyle(() => {
+    const baseScale = runButtonBaseScale.value;
+    const pressScale = runButtonPressScale.value;
+
+    return {
+      transform: [
+        {
+          scale: baseScale * pressScale,
+        },
+      ],
+    };
+  });
 
   const handleShare = useCallback(async () => {
     if (!latestActivity) {
@@ -169,11 +368,10 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 32 },
+          { flexGrow: 1, paddingBottom: insets.bottom + 16 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-
         {/* 주간 스트릭 캘린더 (기록 주간 뷰와 동일 디자인·간격, 배경 없음) */}
         <View style={styles.weekCalendar}>
           <View style={styles.weekdayRow}>
@@ -186,34 +384,16 @@ export default function HomeScreen() {
             ))}
           </View>
           <View style={styles.weekRow}>
-            {weekDays.map((day) => {
-              const hasRun = day.hasRun;
-              const todayFlag = day.isToday;
-
-              return (
-                <View key={`${day.label}-${day.date}`} style={styles.dayCell}>
-                  <View
-                    style={[
-                      styles.dayBadge,
-                      hasRun && styles.dayBadgeRun,
-                      !hasRun && !todayFlag && [styles.dayBadgeEmpty, { backgroundColor: theme.lightGray }],
-                      todayFlag && !hasRun && styles.dayBadgeToday,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.dayText,
-                        { color: theme.text },
-                        hasRun && styles.dayTextRun,
-                        todayFlag && !hasRun && styles.dayTextToday,
-                      ]}
-                    >
-                      {day.date}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
+            {weekDays.map((day, index) => (
+              <WeekDayCell
+                key={`${day.label}-${day.date}`}
+                day={day}
+                index={index}
+                theme={theme}
+                weekCalendarProgress={weekCalendarProgress}
+                todayBadgeScale={todayBadgeScale}
+              />
+            ))}
           </View>
         </View>
 
@@ -237,14 +417,14 @@ export default function HomeScreen() {
           {/* 거리 표시 */}
           <View style={styles.distanceSection}>
             <Text style={styles.distanceValue}>
-              {latestActivity ? latestActivity.distance_km.toFixed(2) : '0.00'}
+              {displayDistance.toFixed(2)}
             </Text>
             <Text style={[styles.distanceUnit, { color: theme.text }]}>KM</Text>
           </View>
 
           {/* 타이머 표시 */}
           <Text style={[styles.timerText, { color: theme.text }]}>
-            {formatDurationHHMMSS(latestActivity?.duration_display)}
+            {formatSecondsToHHMMSS(displayDurationSeconds)}
           </Text>
 
           {/* 현재 페이스 & 심박수 */}
@@ -274,35 +454,121 @@ export default function HomeScreen() {
 
         {/* RUN 버튼 */}
         <View style={styles.runButtonContainer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.runButtonOuter,
-              pressed && styles.runButtonPressed,
-            ]}
-            onPress={handleRunPress}
-          >
-            <LinearGradient
-              colors={[BrandOrangeLight, BrandOrange]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.runButtonGradient}
+          <Animated.View style={runButtonAnimatedStyle}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.runButtonOuter,
+                pressed && styles.runButtonPressed,
+              ]}
+              onPress={handleRunPress}
+              onPressIn={() => {
+                runButtonPressScale.value = withTiming(0.94, {
+                  duration: 120,
+                  easing: Easing.out(Easing.cubic),
+                });
+              }}
+              onPressOut={() => {
+                runButtonPressScale.value = withTiming(1, {
+                  duration: 160,
+                  easing: Easing.out(Easing.cubic),
+                });
+              }}
             >
-              <MaterialIcons
-                name="directions-run"
-                size={34}
-                color="#FFFFFF"
-              />
-              <Text style={[styles.runButtonText, { color: '#FFFFFF' }]}>
-                RUN
-              </Text>
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient
+                colors={[BrandOrangeLight, BrandOrange]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.runButtonGradient}
+              >
+                <MaterialIcons
+                  name="directions-run"
+                  size={34}
+                  color="#FFFFFF"
+                />
+                <Text style={[styles.runButtonText, { color: '#FFFFFF' }]}>
+                  RUN
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
         </View>
 
         {/* FAB 하단 간격 */}
         <View style={styles.fabSpacer} />
       </ScrollView>
     </ThemedView>
+  );
+}
+
+type WeekDayCellProps = {
+  day: {
+    label: string;
+    date: number;
+    hasRun: boolean;
+    isToday: boolean;
+  };
+  index: number;
+  theme: any;
+  weekCalendarProgress: SharedValue<number>;
+  todayBadgeScale: SharedValue<number>;
+};
+
+function WeekDayCell({
+  day,
+  index,
+  theme,
+  weekCalendarProgress,
+  todayBadgeScale,
+}: WeekDayCellProps) {
+  const hasRun = day.hasRun;
+  const todayFlag = day.isToday;
+
+  const runDayAnimatedStyle = useAnimatedStyle(() => {
+    if (!hasRun) {
+      return {};
+    }
+
+    const progress = weekCalendarProgress.value;
+    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+    return {
+      backgroundColor: eased < 0.5 ? theme.lightGray : BrandOrange,
+    };
+  });
+
+  const todayAnimatedStyle = useAnimatedStyle(() => {
+    if (!(todayFlag && hasRun)) {
+      return {};
+    }
+
+    return {
+      transform: [{ scale: todayBadgeScale.value }],
+    };
+  });
+
+  return (
+    <View style={styles.dayCell}>
+      <Animated.View
+        style={[
+          styles.dayBadge,
+          !hasRun && !todayFlag && [styles.dayBadgeEmpty, { backgroundColor: theme.lightGray }],
+          todayFlag && !hasRun && styles.dayBadgeToday,
+          runDayAnimatedStyle,
+          todayAnimatedStyle,
+        ]}
+      >
+        <Text
+          style={[
+            styles.dayText,
+            { color: theme.text },
+            hasRun && styles.dayTextRun,
+            todayFlag && !hasRun && styles.dayTextToday,
+          ]}
+        >
+          {day.date}
+        </Text>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -506,8 +772,8 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
 
-  /* FAB 하단 간격 */
+  /* FAB/탭바 하단 여유 (작은 기기 대비, 여유 스크롤 최소화) */
   fabSpacer: {
-    height: 80,
+    height: 24,
   },
 });
