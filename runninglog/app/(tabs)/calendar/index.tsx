@@ -74,6 +74,16 @@ function getWeekOfMonth(date: Date): number {
   return Math.max(1, weekNum);
 }
 
+function formatDurationHHMMSS(value?: string | null): string {
+  if (!value) return '00:00:00';
+  const parts = value.split(':').map((p) => Number(p));
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) {
+    return '00:00:00';
+  }
+  const [h, m, s] = parts;
+  return [h, m, s].map((n) => n.toString().padStart(2, '0')).join(':');
+}
+
 // 일요일 시작
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
@@ -619,7 +629,9 @@ export default function CalendarScreen() {
             <Text style={[styles.statLabel, themeStyles.statLabel]}>횟수</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>{summary?.total_duration_display ?? '0:00:00'}</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>
+              {formatDurationHHMMSS(summary?.total_duration_display)}
+            </Text>
             <Text style={[styles.statLabel, themeStyles.statLabel]}>누적 시간</Text>
           </View>
           <View style={styles.statItem}>

@@ -12,8 +12,8 @@ import { BrandOrange, BrandOrangeLight, Colors, F, HeartRed } from '@/constants/
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
 import { getActivities } from '@/lib/api/activities';
-import { getStatisticsSummary } from '@/lib/api/statistics';
-import type { StatisticsSummary } from '@/types/activity';
+import { useCoachingMessage } from '@/hooks/use-coaching-message';
+import type { ActivityListItem } from '@/types/activity';
 
 // ─── 주간 캘린더 생성 (일요일 시작) ──────────────────────────────────────────
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -37,6 +37,16 @@ function getWeekCalendar(runDays: Set<number>) {
   });
 }
 
+function formatDurationHHMMSS(value?: string | null): string {
+  if (!value) return '00:00:00';
+  const parts = value.split(':').map((p) => Number(p));
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) {
+    return '00:00:00';
+  }
+  const [h, m, s] = parts;
+  return [h, m, s].map((n) => n.toString().padStart(2, '0')).join(':');
+}
+
 // ─── 컴포넌트 ────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -45,22 +55,24 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
-  const [summary, setSummary] = useState<StatisticsSummary | null>(null);
+  const [latestActivity, setLatestActivity] = useState<ActivityListItem | null>(null);
+  const [activitiesList, setActivitiesList] = useState<ActivityListItem[]>([]);
   const [runDays, setRunDays] = useState<Set<number>>(new Set());
-  const [aiMessage, setAiMessage] = useState(
-    '와, 이번주에는 주 5일이나 달리기를 진행했네! 너무 고생 많았어. 달린 후 회복을 위한 스트레칭도 잊지 말고 꼭 해줘. 내일도 행복한 러닝하자'
-  );
+  const aiMessage = useCoachingMessage(activitiesList);
 
   const today = new Date();
   const displayDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
 
   const fetchData = useCallback(async () => {
     try {
-      const [sumData, actData] = await Promise.all([
-        getStatisticsSummary(),
-        getActivities({ page: 1, page_size: 50 }),
-      ]);
-      setSummary(sumData);
+      const actData = await getActivities({ page: 1, page_size: 50 });
+
+      // 오늘 날짜 기준 가장 최신 기록 1건
+      const sorted = [...actData.results].sort(
+        (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      );
+      setLatestActivity(sorted[0] ?? null);
+      setActivitiesList(actData.results);
 
       // 이번 달 달린 날짜 추출
       const thisMonth = today.getMonth();
@@ -159,24 +171,24 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 거리 표시 */}
+        {/* 거리 표시 (가장 최신 기록 기준) */}
         <View style={styles.distanceSection}>
           <Text style={styles.distanceValue}>
-            {summary ? summary.total_distance_km.toFixed(2) : '0.00'}
+            {latestActivity ? latestActivity.distance_km.toFixed(2) : '0.00'}
           </Text>
-          <Text style={[styles.distanceUnit, { color: theme.text }]}>km</Text>
+          <Text style={[styles.distanceUnit, { color: theme.text }]}>KM</Text>
         </View>
 
-        {/* 타이머 표시 */}
+        {/* 타이머 표시 (가장 최신 기록 기준) */}
         <Text style={[styles.timerText, { color: theme.text }]}>
-          {summary?.total_duration_display ?? '00:00:00'}
+          {formatDurationHHMMSS(latestActivity?.duration_display)}
         </Text>
 
-        {/* 현재 페이스 & 심박수 */}
+        {/* 현재 페이스 & 심박수 (가장 최신 기록 기준) */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.text }]}>
-              {summary?.average_pace ?? '-'}
+              {latestActivity?.average_pace_display ?? '-'}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               평균 페이스
