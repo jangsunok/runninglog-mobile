@@ -166,7 +166,7 @@ export const COACHING_RULES: CoachingRule[] = [
     priority: 70,
     condition: (ctx) => ctx.daysSinceLastRun === 0,
     messages: [
-      '오늘 {{distance}}km를 달렸어요! 수고했어요. 나를 위해 시간을 내준 게 정말 멋져요.',
+      '오늘 {{distance}}km를 달렸어요! 수고했어요. 온전히 나를 위한 시간을 내어 주신 게 정말 멋져요.',
       '{{distance}}km 완주! 달린 후 충분히 수분을 보충해주세요. 오늘도 고생 많았어요.',
       '오늘도 달려주셨네요! {{distance}}km, 매 걸음이 나를 더 건강하게 만들어주고 있어요.',
       '{{distance}}km를 달리는 동안 온전히 나에게 집중한 시간, 정말 소중했을 거예요. 수고했어요!',

@@ -17,7 +17,7 @@ import Animated, {
 import type { SharedValue } from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
-import { BrandOrange, BrandOrangeLight, Colors, F, HeartRed } from '@/constants/theme';
+import { BrandOrange, Colors, F, HeartRed } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AIPacemakerCard } from '@/components/ai-pacemaker-card';
 import { getActivities } from '@/lib/api/activities';
@@ -474,21 +474,10 @@ export default function HomeScreen() {
                 });
               }}
             >
-              <LinearGradient
-                colors={[BrandOrangeLight, BrandOrange]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.runButtonGradient}
-              >
-                <MaterialIcons
-                  name="directions-run"
-                  size={34}
-                  color="#FFFFFF"
-                />
-                <Text style={[styles.runButtonText, { color: '#FFFFFF' }]}>
-                  RUN
-                </Text>
-              </LinearGradient>
+              <View style={[styles.runButtonGradient, { backgroundColor: BrandOrange }]}>
+                <MaterialIcons name="directions-run" size={34} color="#FFFFFF" />
+                <Text style={[styles.runButtonText, { color: '#FFFFFF' }]}>RUN</Text>
+              </View>
             </Pressable>
           </Animated.View>
         </View>
@@ -670,8 +659,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     borderRadius: 16,
     backgroundColor: 'transparent',
     alignItems: 'center',
