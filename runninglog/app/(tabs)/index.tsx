@@ -188,7 +188,7 @@ export default function HomeScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.text }]}>
-              {latestActivity?.average_pace_display ?? '-'}
+              {(latestActivity?.average_pace_display?.trim() || "00'00\"")}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               평균 페이스

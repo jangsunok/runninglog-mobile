@@ -9,9 +9,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandOrange, BrandOrangeLight, Colors, C, F } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getActivities } from '@/lib/api/activities';
-import { getStatisticsSummary } from '@/lib/api/statistics';
+import {
+  getStatisticsDaily,
+  getStatisticsMonthly,
+  getStatisticsWeekly,
+  getStatisticsYearly,
+} from '@/lib/api/statistics';
 import { getCurrentGoal } from '@/lib/api/goals';
-import type { ActivityListItem, StatisticsSummary } from '@/types/activity';
+import type { ActivityListItem, StatisticsPeriodItem } from '@/types/activity';
 import type { Goal } from '@/types/api';
 
 // ─────────────────────────────────────────────
@@ -92,6 +97,79 @@ const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8�
 const MIN_YEAR = 2025;
 const MIN_DATE = new Date(MIN_YEAR, 0, 1);
 
+/** YYYY-MM-DD */
+function toISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** 현재 뷰 모드·기간에 해당하는 from/to (YYYY-MM-DD) */
+function getPeriodRange(
+  viewMode: ViewMode,
+  weekSunday: Date,
+  currentYear: number,
+  currentMonth: number
+): { from: string; to: string } {
+  if (viewMode === 'weekly') {
+    const from = new Date(weekSunday);
+    const to = new Date(weekSunday);
+    to.setDate(to.getDate() + 6);
+    return { from: toISODate(from), to: toISODate(to) };
+  }
+  if (viewMode === 'monthly') {
+    const from = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+    const lastDay = getDaysInMonth(currentYear, currentMonth);
+    const to = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    return { from, to };
+  }
+  return { from: `${currentYear}-01-01`, to: `${currentYear}-12-31` };
+}
+
+/** 주별 통계에서 해당 주(일요일 기준)와 일치하는 항목 찾기. 백엔드는 월요일 시작 주. */
+function findWeeklyPeriod(
+  list: StatisticsPeriodItem[],
+  weekSunday: Date
+): StatisticsPeriodItem | null {
+  const mon = new Date(weekSunday);
+  mon.setDate(mon.getDate() + 1);
+  const monStr = toISODate(mon);
+  return list.find((p) => p.period_start === monStr) ?? null;
+}
+
+/** 월별 통계에서 해당 월과 일치하는 항목 찾기 */
+function findMonthlyPeriod(
+  list: StatisticsPeriodItem[],
+  year: number,
+  month: number
+): StatisticsPeriodItem | null {
+  const first = `${year}-${String(month).padStart(2, '0')}-01`;
+  return list.find((p) => p.period_start === first) ?? null;
+}
+
+/** 연별 통계에서 해당 연도와 일치하는 항목 찾기 */
+function findYearlyPeriod(
+  list: StatisticsPeriodItem[],
+  year: number
+): StatisticsPeriodItem | null {
+  const first = `${year}-01-01`;
+  return list.find((p) => p.period_start === first) ?? null;
+}
+
+/** 일별 통계로 runDates 맵 생성 (key: "year-month", value: 날짜 배열) */
+function runDatesFromDaily(daily: StatisticsPeriodItem[]): Record<string, number[]> {
+  const map: Record<string, number[]> = {};
+  for (const p of daily) {
+    const d = p.period_start;
+    const [y, m, day] = d.split('-').map(Number);
+    const key = `${y}-${m}`;
+    if (!map[key]) map[key] = [];
+    if (!map[key].includes(day)) map[key].push(day);
+  }
+  return map;
+}
+
 // ═════════════════════════════════════════════
 // 메인 컴포넌트
 // ═════════════════════════════════════════════
@@ -109,42 +187,63 @@ export default function CalendarScreen() {
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [weekSunday, setWeekSunday] = useState(() => getWeekSunday(now));
 
-  // API 데이터
+  // API 데이터: 기간별 전체기록 요약·상세기록·캘린더 점
+  const [periodSummary, setPeriodSummary] = useState<StatisticsPeriodItem | null>(null);
   const [activities, setActivities] = useState<ActivityListItem[]>([]);
-  const [summary, setSummary] = useState<StatisticsSummary | null>(null);
   const [runDates, setRunDates] = useState<Record<string, number[]>>({});
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [periodLoading, setPeriodLoading] = useState(true);
 
   const isViewingCurrentMonth =
     currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1;
 
+  // 목표는 최초 1회만 로드
   useEffect(() => {
+    getCurrentGoal()
+      .then(setGoal)
+      .catch(() => setGoal(null));
+  }, []);
+
+  // 주간/월간/연간 달력 이동 시 해당 기간 전체기록·상세기록·캘린더 점 다시 불러오기
+  const { from: periodFrom, to: periodTo } = useMemo(
+    () => getPeriodRange(viewMode, weekSunday, currentYear, currentMonth),
+    [viewMode, weekSunday, currentYear, currentMonth]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setPeriodLoading(true);
     (async () => {
       try {
-        const [actData, sumData, goalData] = await Promise.all([
-          getActivities({ page: 1, page_size: 100 }),
-          getStatisticsSummary(),
-          getCurrentGoal().catch(() => null),
+        const [periodStats, dailyStats, actData] = await Promise.all([
+          viewMode === 'weekly'
+            ? getStatisticsWeekly(currentYear)
+            : viewMode === 'monthly'
+              ? getStatisticsMonthly(currentYear)
+              : getStatisticsYearly(),
+          getStatisticsDaily(periodFrom, periodTo),
+          getActivities({ from: periodFrom, to: periodTo, page: 1, page_size: 100 }),
         ]);
+        if (cancelled) return;
+        const matched =
+          viewMode === 'weekly'
+            ? findWeeklyPeriod(periodStats, weekSunday)
+            : viewMode === 'monthly'
+              ? findMonthlyPeriod(periodStats, currentYear, currentMonth)
+              : findYearlyPeriod(periodStats, currentYear);
+        setPeriodSummary(matched ?? null);
+        setRunDates(runDatesFromDaily(dailyStats));
         setActivities(actData.results);
-        setSummary(sumData);
-        setGoal(goalData ?? null);
-
-        // 활동 날짜를 연-월별로 그룹핑
-        const dateMap: Record<string, number[]> = {};
-        for (const act of actData.results) {
-          const d = new Date(act.started_at);
-          const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-          const day = d.getDate();
-          if (!dateMap[key]) dateMap[key] = [];
-          if (!dateMap[key].includes(day)) dateMap[key].push(day);
-        }
-        setRunDates(dateMap);
       } catch {
-        Toast.show({ type: 'error', text1: '기록을 불러오지 못했어요.' });
+        if (!cancelled) Toast.show({ type: 'error', text1: '기록을 불러오지 못했어요.' });
+      } finally {
+        if (!cancelled) setPeriodLoading(false);
       }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, weekSunday, currentYear, currentMonth, periodFrom, periodTo]);
 
   // 월 네비게이션
   const goToPrevMonth = useCallback(() => {
@@ -617,7 +716,7 @@ export default function CalendarScreen() {
       <View style={styles.bigDistanceRow}>
         <Text style={[styles.bigDistanceLabel, themeStyles.bigDistanceLabel]}>누적 거리</Text>
         <Text style={styles.bigDistanceNumber}>
-          {summary ? summary.total_distance_km.toFixed(2) : '0'}
+          {periodSummary ? periodSummary.total_distance_km.toFixed(2) : '0'}
         </Text>
         <Text style={[styles.bigDistanceUnit, themeStyles.bigDistanceUnit]}>km</Text>
       </View>
@@ -625,17 +724,17 @@ export default function CalendarScreen() {
       <View style={[styles.statsCard, themeStyles.statsCard]}>
         <View style={styles.statsInnerRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>{summary?.total_activities ?? 0}</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>{periodSummary?.total_activities ?? 0}</Text>
             <Text style={[styles.statLabel, themeStyles.statLabel]}>횟수</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, themeStyles.statValue]}>
-              {formatDurationHHMMSS(summary?.total_duration_display)}
+              {formatDurationHHMMSS(periodSummary?.total_duration)}
             </Text>
             <Text style={[styles.statLabel, themeStyles.statLabel]}>누적 시간</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>{summary?.average_pace_display ?? "-"}</Text>
+            <Text style={[styles.statValue, themeStyles.statValue]}>{periodSummary?.average_pace_display ?? '-'}</Text>
             <Text style={[styles.statLabel, themeStyles.statLabel]}>평균 페이스</Text>
           </View>
         </View>
@@ -643,22 +742,8 @@ export default function CalendarScreen() {
     </View>
   );
 
-  // ─────────────────────────────────────────
-  // 상세 기록 리스트
-  // ─────────────────────────────────────────
-  // 연간 뷰: 해당 연도 전체, 월간/주간 뷰: 현재 연·월만 (달력과 동일한 year 기준)
-  const detailActivities = useMemo(() => {
-    if (viewMode === 'yearly') {
-      return activities.filter((a) => {
-        const d = new Date(a.started_at);
-        return d.getFullYear() === currentYear;
-      });
-    }
-    return activities.filter((a) => {
-      const d = new Date(a.started_at);
-      return d.getFullYear() === currentYear && d.getMonth() + 1 === currentMonth;
-    });
-  }, [activities, viewMode, currentYear, currentMonth]);
+  // 상세 기록: 기간 API(from/to)로 이미 필터된 활동 목록 사용
+  const detailActivities = activities;
 
   const detailTitle = viewMode === 'yearly' ? `${currentYear}년 기록` : '상세 기록';
   const detailEmptyMessage = viewMode === 'yearly' ? `${currentYear}년 기록이 없습니다` : '이 달의 기록이 없습니다';

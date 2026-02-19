@@ -16,7 +16,7 @@ import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import 'react-native-reanimated';
@@ -51,8 +51,6 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isReady, isLoggedIn } = useAuth();
 
-  console.log('[RootLayoutNav] render', { isReady, isLoggedIn });
-
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -65,16 +63,25 @@ function RootLayoutNav() {
     BebasNeue_400Regular,
   });
 
-  console.log('[RootLayoutNav] fontsLoaded', fontsLoaded);
+  const [splashTimedOut, setSplashTimedOut] = useState(false);
 
+  // 네이티브 스플래시는 마운트 직후 바로 숨김 (Auth/폰트 대기하지 않음).
+  // USB 제거 시 JS는 돌아가도 isReady/폰트가 안 오는 경우 대비.
   useEffect(() => {
-    console.log('[RootLayoutNav] effect run', { isReady, fontsLoaded });
-    if (!isReady || !fontsLoaded) return;
-    console.log('[RootLayoutNav] calling SplashScreen.hideAsync');
-    SplashScreen.hideAsync();
+    const t = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 100);
+    return () => clearTimeout(t);
+  }, []);
+
+  // 앱 진입: Auth+폰트 준비되면 바로, 안 되면 3초 후 강제 진입
+  useEffect(() => {
+    if (isReady && fontsLoaded) return;
+    const t = setTimeout(() => setSplashTimedOut(true), 3000);
+    return () => clearTimeout(t);
   }, [isReady, fontsLoaded]);
 
-  const ready = isReady && fontsLoaded;
+  const ready = (isReady && fontsLoaded) || splashTimedOut;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

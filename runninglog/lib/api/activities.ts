@@ -23,6 +23,8 @@ export async function getActivities(
   const search = new URLSearchParams();
   if (params.page != null) search.set('page', String(params.page));
   if (params.page_size != null) search.set('page_size', String(params.page_size));
+  if (params.from) search.set('from', params.from);
+  if (params.to) search.set('to', params.to);
   const query = search.toString();
   const path = query ? `${BASE}/?${query}` : `${BASE}/`;
   return apiClient<ActivitiesListResponse>(path);

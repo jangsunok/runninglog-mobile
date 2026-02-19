@@ -16,6 +16,9 @@ export type RouteCoordinateItem = ApiCoordinate;
 export interface ActivitiesListParams {
   page?: number;
   page_size?: number;
+  /** 기간 필터 (YYYY-MM-DD). 포함 시 해당 기간 내 활동만 조회 */
+  from?: string;
+  to?: string;
 }
 
 /** 목록 조회 응답 */
