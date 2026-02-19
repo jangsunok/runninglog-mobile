@@ -50,7 +50,7 @@
             },
             {
               "type": "icon_font",
-              "id": "6aSF9",
+              "id": "aFGop",
               "name": "menuIcon3",
               "width": 22,
               "height": 22,
@@ -33864,6 +33864,30 @@
           ]
         }
       ]
+    },
+    {
+      "type": "icon_font",
+      "id": "6aSF9",
+      "x": -1822,
+      "y": 974,
+      "name": "menuIcon3",
+      "width": 22,
+      "height": 22,
+      "iconFontName": "share-2",
+      "iconFontFamily": "lucide",
+      "fill": "$textTertiary"
+    },
+    {
+      "type": "icon_font",
+      "id": "Kt8bb",
+      "x": -1403,
+      "y": 974,
+      "name": "menuIcon3",
+      "width": 22,
+      "height": 22,
+      "iconFontName": "share-2",
+      "iconFontFamily": "lucide",
+      "fill": "$textTertiary"
     }
   ],
   "themes": {

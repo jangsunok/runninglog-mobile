@@ -1,9 +1,9 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, Heart } from 'lucide-react-native';
+import { Bell, Heart, Share2 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Text, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
@@ -96,6 +96,36 @@ export default function HomeScreen() {
 
   const weekDays = getWeekCalendar(runDays);
 
+  const handleShare = useCallback(async () => {
+    if (!latestActivity) {
+      Toast.show({ type: 'info', text1: '공유할 러닝 기록이 아직 없어요.' });
+      return;
+    }
+
+    const distance = latestActivity.distance_km.toFixed(2);
+    const duration = formatDurationHHMMSS(latestActivity.duration_display);
+    const pace = (latestActivity.average_pace_display?.trim() || "00'00\"");
+
+    const messageLines = [
+      `오늘의 러닝 기록을 공유할게요 🏃‍♀️`,
+      '',
+      `거리: ${distance} km`,
+      `시간: ${duration}`,
+      `평균 페이스: ${pace}`,
+      '',
+      aiMessage ? `페이스메이커 한마디: ${aiMessage}` : '',
+      'with Runninglog',
+    ].filter(Boolean);
+
+    try {
+      await Share.share({
+        message: messageLines.join('\n'),
+      });
+    } catch {
+      Toast.show({ type: 'error', text1: '공유하기에 실패했어요. 다시 시도해 주세요.' });
+    }
+  }, [latestActivity, aiMessage]);
+
   /** RUN 버튼 누르면 액티브 런 화면으로 이동 */
   const handleRunPress = () => {
     router.push('/(tabs)/run/active');
@@ -171,37 +201,55 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 거리 표시 (가장 최신 기록 기준) */}
-        <View style={styles.distanceSection}>
-          <Text style={styles.distanceValue}>
-            {latestActivity ? latestActivity.distance_km.toFixed(2) : '0.00'}
-          </Text>
-          <Text style={[styles.distanceUnit, { color: theme.text }]}>KM</Text>
-        </View>
+        {/* 기록 영역 + 공유 버튼 (가장 최신 기록 기준) */}
+        <View style={styles.recordContainer}>
+          <Pressable
+            onPress={handleShare}
+            style={({ pressed }) => [
+              styles.shareButton,
+              pressed && styles.shareButtonPressed,
+            ]}
+            hitSlop={8}
+          >
+            <Share2
+              size={18}
+              color={colorScheme === 'dark' ? '#FFFFFF' : theme.icon}
+              strokeWidth={2}
+            />
+          </Pressable>
 
-        {/* 타이머 표시 (가장 최신 기록 기준) */}
-        <Text style={[styles.timerText, { color: theme.text }]}>
-          {formatDurationHHMMSS(latestActivity?.duration_display)}
-        </Text>
-
-        {/* 현재 페이스 & 심박수 (가장 최신 기록 기준) */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.text }]}>
-              {(latestActivity?.average_pace_display?.trim() || "00'00\"")}
+          {/* 거리 표시 */}
+          <View style={styles.distanceSection}>
+            <Text style={styles.distanceValue}>
+              {latestActivity ? latestActivity.distance_km.toFixed(2) : '0.00'}
             </Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-              평균 페이스
-            </Text>
+            <Text style={[styles.distanceUnit, { color: theme.text }]}>KM</Text>
           </View>
-          <View style={styles.statItem}>
-            <View style={styles.heartRateRow}>
-              <Heart size={22} color={HeartRed} fill={HeartRed} strokeWidth={2} />
-              <Text style={[styles.statValue, { color: theme.text }]}>-</Text>
+
+          {/* 타이머 표시 */}
+          <Text style={[styles.timerText, { color: theme.text }]}>
+            {formatDurationHHMMSS(latestActivity?.duration_display)}
+          </Text>
+
+          {/* 현재 페이스 & 심박수 */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: theme.text }]}>
+                {(latestActivity?.average_pace_display?.trim() || "00'00\"")}
+              </Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                평균 페이스
+              </Text>
             </View>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-              심박수 bpm
-            </Text>
+            <View style={styles.statItem}>
+              <View style={styles.heartRateRow}>
+                <Heart size={22} color={HeartRed} fill={HeartRed} strokeWidth={2} />
+                <Text style={[styles.statValue, { color: theme.text }]}>-</Text>
+              </View>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                심박수 bpm
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -228,7 +276,7 @@ export default function HomeScreen() {
                 size={34}
                 color="#FFFFFF"
               />
-              <Text style={[styles.runButtonText, { color: colorScheme === 'dark' ? '#FFFFFF' : theme.text }]}>
+              <Text style={[styles.runButtonText, { color: '#FFFFFF' }]}>
                 RUN
               </Text>
             </LinearGradient>
@@ -265,6 +313,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   dateText: {
     fontSize: 28,
@@ -324,6 +377,27 @@ const styles = StyleSheet.create({
   dayTextToday: {
     color: BrandOrange,
     fontFamily: F.inter700,
+  },
+
+  /* 기록 영역 래퍼 (공유 버튼 오버레이) */
+  recordContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  shareButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareButtonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.95 }],
   },
 
   /* 거리 표시 */
