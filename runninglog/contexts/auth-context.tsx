@@ -1,7 +1,7 @@
 'use client';
 
 import { setAuthToken } from '@/lib/api/client';
-import { logoutApi } from '@/lib/api/auth';
+import { logoutApi, refreshTokens } from '@/lib/api/auth';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -85,14 +85,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      const access = await getStoredAccessToken();
-      if (access) {
-        setAuthToken(access);
-        setIsLoggedIn(true);
-      } else {
+      const refresh = await getStoredRefreshToken();
+
+      // 리프레시 토큰이 없으면 바로 비로그인 상태
+      if (!refresh) {
+        await removeStoredTokens();
+        setAuthToken(null);
         setIsLoggedIn(false);
+        return;
       }
+
+      // 리프레시 토큰으로 세션 갱신 시도
+      const refreshed = await refreshTokens(refresh);
+      await setStoredTokens(refreshed.access_token, refreshed.refresh_token);
+      setAuthToken(refreshed.access_token);
+      setIsLoggedIn(true);
     } catch {
+      // 갱신 실패 시 강제 로그아웃 처리
+      await removeStoredTokens();
+      setAuthToken(null);
       setIsLoggedIn(false);
     } finally {
       setIsReady(true);
