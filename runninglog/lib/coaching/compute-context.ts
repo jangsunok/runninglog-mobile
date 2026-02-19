@@ -62,16 +62,33 @@ function countInCurrentWeek(sorted: ActivityListItem[], now: Date): number {
   sunday.setDate(now.getDate() - now.getDay());
   sunday.setHours(0, 0, 0, 0);
 
-  return sorted.filter((a) => new Date(a.started_at) >= sunday).length;
+  const uniqueDays = new Set<string>();
+
+  for (const a of sorted) {
+    const d = new Date(a.started_at);
+    if (d >= sunday) {
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      uniqueDays.add(key);
+    }
+  }
+
+  return uniqueDays.size;
 }
 
 function countInCurrentMonth(sorted: ActivityListItem[], now: Date): number {
   const y = now.getFullYear();
   const m = now.getMonth();
-  return sorted.filter((a) => {
+  const uniqueDays = new Set<string>();
+
+  for (const a of sorted) {
     const d = new Date(a.started_at);
-    return d.getFullYear() === y && d.getMonth() === m;
-  }).length;
+    if (d.getFullYear() === y && d.getMonth() === m) {
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      uniqueDays.add(key);
+    }
+  }
+
+  return uniqueDays.size;
 }
 
 function diffCalendarDays(a: Date, b: Date): number {
