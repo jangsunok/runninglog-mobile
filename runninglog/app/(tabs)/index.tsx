@@ -39,12 +39,28 @@ function getWeekCalendar(runDays: Set<number>) {
 
 function formatDurationHHMMSS(value?: string | null): string {
   if (!value) return '00:00:00';
-  const parts = value.split(':').map((p) => Number(p));
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) {
-    return '00:00:00';
+
+  const raw = value.trim();
+  if (!raw) return '00:00:00';
+
+  const parts = raw.split(':').map((p) => Number(p));
+  if (parts.some((n) => Number.isNaN(n))) {
+    // 백엔드에서 이미 보기 좋은 형태로 내려주는 경우 그대로 사용
+    return raw;
   }
-  const [h, m, s] = parts;
-  return [h, m, s].map((n) => n.toString().padStart(2, '0')).join(':');
+
+  if (parts.length === 2) {
+    const [m, s] = parts;
+    return ['0', m, s].map((n) => n.toString().padStart(2, '0')).join(':');
+  }
+
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    return [h, m, s].map((n) => n.toString().padStart(2, '0')).join(':');
+  }
+
+  // 예상하지 못한 포맷이면 원본을 그대로 노출
+  return raw;
 }
 
 // ─── 컴포넌트 ────────────────────────────────────────────────
