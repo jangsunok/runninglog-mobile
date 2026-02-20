@@ -85,6 +85,13 @@
           "requestPermissionsOnFirstLaunch": false
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "편집한 러닝 기록 이미지를 사진 앨범에 저장하기 위해 접근이 필요합니다.",
+          "savePhotosPermission": "편집한 러닝 기록 이미지를 사진 앨범에 저장하기 위해 접근이 필요합니다."
+        }
+      ],
       "@kayzmann/expo-healthkit"
     ],
     "experiments": {

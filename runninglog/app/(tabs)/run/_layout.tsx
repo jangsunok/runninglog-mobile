@@ -5,6 +5,7 @@ export default function RunLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="active" />
       <Stack.Screen name="[id]" />
+      <Stack.Screen name="share-edit" />
     </Stack>
   );
 }

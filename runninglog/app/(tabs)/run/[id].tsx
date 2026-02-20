@@ -523,7 +523,10 @@ export default function RunDetailScreen() {
           <Pressable style={st.mapBtn} onPress={() => router.back()}>
             <ChevronLeft size={20} color={WHITE} />
           </Pressable>
-          <Pressable style={st.mapBtn}>
+          <Pressable
+            style={st.mapBtn}
+            onPress={() => router.push({ pathname: '/(tabs)/run/share-edit' as any, params: { source: 'activity', id: String(activityId) } })}
+          >
             <Share2 size={18} color={WHITE} />
           </Pressable>
         </View>

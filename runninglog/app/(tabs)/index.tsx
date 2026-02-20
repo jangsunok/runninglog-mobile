@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell, Heart, Share2 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View, Pressable, Text, Share } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import Animated, {
@@ -311,35 +311,16 @@ export default function HomeScreen() {
     };
   });
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!latestActivity) {
       Toast.show({ type: 'info', text1: '공유할 러닝 기록이 아직 없어요.' });
       return;
     }
-
-    const distance = latestActivity.distance_km.toFixed(2);
-    const duration = formatDurationHHMMSS(latestActivity.duration_display);
-    const pace = (latestActivity.average_pace_display?.trim() || "00'00\"");
-
-    const messageLines = [
-      `오늘의 러닝 기록을 공유할게요 🏃‍♀️`,
-      '',
-      `거리: ${distance} km`,
-      `시간: ${duration}`,
-      `평균 페이스: ${pace}`,
-      '',
-      aiMessage ? `페이스메이커 한마디: ${aiMessage}` : '',
-      'with Runninglog',
-    ].filter(Boolean);
-
-    try {
-      await Share.share({
-        message: messageLines.join('\n'),
-      });
-    } catch {
-      Toast.show({ type: 'error', text1: '공유하기에 실패했어요. 다시 시도해 주세요.' });
-    }
-  }, [latestActivity, aiMessage]);
+    router.push({
+      pathname: '/(tabs)/run/share-edit' as any,
+      params: { source: 'activity', id: String(latestActivity.activity_id) },
+    });
+  }, [latestActivity, router]);
 
   /** RUN 버튼 누르면 액티브 런 화면으로 이동 */
   const handleRunPress = () => {
