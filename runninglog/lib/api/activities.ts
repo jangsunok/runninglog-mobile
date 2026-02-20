@@ -14,6 +14,7 @@ import type {
 } from '@/types/activity';
 import type { RunRecord } from '@/types/run';
 import { msToDurationHHMMSS, paceMinPerKmToDurationHHMMSS } from '@/lib/utils/activity-format';
+import { computeSplits } from '@/lib/utils/geo';
 
 const BASE = 'v1/activities';
 
@@ -70,6 +71,18 @@ export function runRecordToCreatePayload(
   const startCoord = record.coordinates[0];
   const endCoord = record.coordinates[record.coordinates.length - 1];
 
+  const splitData = computeSplits(record.coordinates, record.totalDurationMs);
+  const splits = splitData.map((sp) => ({
+    split_number: sp.split_number,
+    distance: sp.distance,
+    duration: msToDurationHHMMSS(sp.durationMs),
+    pace: paceMinPerKmToDurationHHMMSS(sp.paceMinPerKm),
+  }));
+
+  const bestSplit = splitData.length > 0
+    ? splitData.reduce((best, sp) => sp.paceMinPerKm < best.paceMinPerKm ? sp : best)
+    : null;
+
   return {
     title: options?.title ?? `러닝 ${new Date(record.startedAt).toLocaleDateString('ko-KR')}`,
     started_at: startedAt,
@@ -77,7 +90,9 @@ export function runRecordToCreatePayload(
     duration: msToDurationHHMMSS(record.totalDurationMs),
     distance: record.totalDistanceMeters,
     average_pace: paceMinPerKmToDurationHHMMSS(record.avgPaceMinPerKm),
-    best_pace: paceMinPerKmToDurationHHMMSS(record.avgPaceMinPerKm),
+    best_pace: bestSplit
+      ? paceMinPerKmToDurationHHMMSS(bestSplit.paceMinPerKm)
+      : paceMinPerKmToDurationHHMMSS(record.avgPaceMinPerKm),
     route_coordinates: route.length ? route : undefined,
     start_coordinates: startCoord
       ? { lat: startCoord.latitude, lng: startCoord.longitude }
@@ -85,6 +100,7 @@ export function runRecordToCreatePayload(
     end_coordinates: endCoord
       ? { lat: endCoord.latitude, lng: endCoord.longitude }
       : undefined,
+    splits: splits.length > 0 ? splits : undefined,
     notes: options?.notes,
   };
 }

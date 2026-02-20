@@ -74,3 +74,93 @@ export function formatPace(paceMinPerKm: number | null): string {
   const sec = Math.round((paceMinPerKm - min) * 60);
   return `${min}'${sec.toString().padStart(2, '0')}"`;
 }
+
+export interface SplitData {
+  split_number: number;
+  distance: number;
+  durationMs: number;
+  paceMinPerKm: number;
+}
+
+/**
+ * GPS 좌표 배열에서 1km 단위 스플릿을 계산한다.
+ * 타임스탬프가 없으면 총 소요시간(totalDurationMs)을 거리 비율로 배분한다.
+ */
+export function computeSplits(
+  coordinates: Coordinate[],
+  totalDurationMs: number,
+): SplitData[] {
+  if (coordinates.length < 2 || totalDurationMs <= 0) return [];
+
+  const hasTimestamps =
+    coordinates[0]?.timestamp != null &&
+    coordinates[coordinates.length - 1]?.timestamp != null;
+
+  const splits: SplitData[] = [];
+  let cumDist = 0;
+  let splitStart = 0;
+  let splitStartDist = 0;
+  let splitNumber = 1;
+
+  for (let i = 1; i < coordinates.length; i++) {
+    const segDist = distanceMeters(coordinates[i - 1], coordinates[i]);
+    cumDist += segDist;
+
+    while (cumDist >= splitNumber * 1000) {
+      const splitDist = 1000;
+      let splitDurMs: number;
+
+      if (hasTimestamps) {
+        const t0 = coordinates[splitStart].timestamp!;
+        const ratio = (splitNumber * 1000 - splitStartDist) / (cumDist - splitStartDist);
+        const tPrev = coordinates[i - 1].timestamp!;
+        const tCurr = coordinates[i].timestamp!;
+        const tSplit = tPrev + (tCurr - tPrev) * ratio;
+        splitDurMs = tSplit - t0;
+      } else {
+        const distFraction = splitDist / (totalDistanceMeters(coordinates) || 1);
+        splitDurMs = totalDurationMs * distFraction;
+      }
+
+      splitDurMs = Math.max(splitDurMs, 1000);
+      const pace = (splitDurMs / 60_000) / (splitDist / 1000);
+
+      splits.push({
+        split_number: splitNumber,
+        distance: splitDist,
+        durationMs: Math.round(splitDurMs),
+        paceMinPerKm: pace,
+      });
+
+      splitStart = i;
+      splitStartDist = splitNumber * 1000;
+      splitNumber++;
+    }
+  }
+
+  const remaining = cumDist - (splitNumber - 1) * 1000;
+  if (remaining >= 100) {
+    let splitDurMs: number;
+
+    if (hasTimestamps) {
+      const t0 = coordinates[splitStart].timestamp!;
+      const tEnd = coordinates[coordinates.length - 1].timestamp!;
+      splitDurMs = tEnd - t0;
+    } else {
+      const distFraction = remaining / (totalDistanceMeters(coordinates) || 1);
+      splitDurMs = totalDurationMs * distFraction;
+    }
+
+    splitDurMs = Math.max(splitDurMs, 1000);
+    const pace = (splitDurMs / 60_000) / (remaining / 1000);
+
+    splits.push({
+      split_number: splitNumber,
+      distance: Math.round(remaining),
+      durationMs: Math.round(splitDurMs),
+      paceMinPerKm: pace,
+    });
+  }
+
+  return splits;
+}

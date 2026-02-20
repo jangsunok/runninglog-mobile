@@ -55,7 +55,9 @@ function normalizeCoords(coords: [number, number][] | ApiCoordinate[]): Coordina
 }
 
 function paceToSec(pace: string): number {
+  if (!pace || typeof pace !== 'string') return 0;
   const p = pace.split(':').map(Number);
+  if (p.length === 3) return (p[0] || 0) * 3600 + (p[1] || 0) * 60 + (p[2] || 0);
   return (p[0] || 0) * 60 + (p[1] || 0);
 }
 
