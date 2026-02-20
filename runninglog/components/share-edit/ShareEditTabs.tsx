@@ -1,5 +1,5 @@
 import { View, Text, Pressable, StyleSheet, Switch, ScrollView } from 'react-native';
-import { Type, Image as ImageIcon, Layout, BarChart3, Map, Camera, Sun } from 'lucide-react-native';
+import { Type, Image as ImageIcon, Layout, BarChart3, Camera, Sun } from 'lucide-react-native';
 
 import { BACKGROUND_COLORS, TEMPLATES, TEXT_THEMES } from '@/constants/shareEditTemplates';
 import { BrandOrange } from '@/constants/theme';
@@ -83,7 +83,6 @@ export function ShareEditTabs({
         {state.activeTab === 'background' && (
           <BackgroundOptions
             state={state}
-            hasRoute={hasRoute}
             onChangeBackground={onChangeBackground}
             onPickPhoto={onPickPhoto}
             onChangeDim={onChangeDim}
@@ -109,13 +108,11 @@ export function ShareEditTabs({
 
 function BackgroundOptions({
   state,
-  hasRoute,
   onChangeBackground,
   onPickPhoto,
   onChangeDim,
 }: {
   state: ShareEditState;
-  hasRoute: boolean;
   onChangeBackground: (type: BackgroundType, color?: string) => void;
   onPickPhoto: () => void;
   onChangeDim: (level: number) => void;
@@ -134,22 +131,6 @@ function BackgroundOptions({
         <Camera size={20} color={state.backgroundType === 'gallery' ? ACCENT : '#6B7280'} />
         <Text style={[s.optLabel, state.backgroundType === 'gallery' && s.optLabelActive]}>
           사진추가
-        </Text>
-      </Pressable>
-
-      {/* Map */}
-      <Pressable
-        style={[
-          s.optCard,
-          state.backgroundType === 'map' && s.optCardActive,
-          !hasRoute && s.optCardDisabled,
-        ]}
-        onPress={() => hasRoute && onChangeBackground('map')}
-        disabled={!hasRoute}
-      >
-        <Map size={20} color={state.backgroundType === 'map' ? ACCENT : hasRoute ? '#6B7280' : '#D1D5DB'} />
-        <Text style={[s.optLabel, state.backgroundType === 'map' && s.optLabelActive, !hasRoute && s.optLabelDisabled]}>
-          지도형
         </Text>
       </Pressable>
 
@@ -274,7 +255,7 @@ function TextThemeOptions({ current, onChange }: { current: TextTheme; onChange:
             style={[s.themeCard, active && s.themeCardActive]}
             onPress={() => onChange(theme.id)}
           >
-            <View style={[s.themePreview, theme.id === 'black' && s.themePreviewLight]}>
+            <View style={[s.themePreview, (theme.id === 'black' || theme.id === 'defaultBlack') && s.themePreviewLight]}>
               <Text style={[s.themePreviewNumber, { color: theme.colors.primary }]}>
                 5.00
               </Text>

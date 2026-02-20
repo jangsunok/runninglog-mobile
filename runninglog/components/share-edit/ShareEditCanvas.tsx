@@ -2,10 +2,9 @@ import { forwardRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import ViewShot from 'react-native-view-shot';
-import { Calendar, MapPin } from 'lucide-react-native';
-
 import { RoutePathSvg } from './RoutePathSvg';
 import { TEMPLATES, TEXT_THEMES, getThemeBlockColor } from '@/constants/shareEditTemplates';
+import { Logo } from '@/constants/assets';
 import type { ShareEditState, ShareCardData } from '@/types/shareEdit';
 import type { ApiCoordinate } from '@/types/activity';
 import type { Coordinate } from '@/types/run';
@@ -36,15 +35,41 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
       [state.textTheme],
     );
 
+    const NUMERIC_KEYS = new Set(['dist', 'time', 'pace', 'hr']);
+
+    const getFontFamily = (key: string, weight?: string) => {
+      if (!NUMERIC_KEYS.has(key)) return F.inter400;
+      if (weight === '800') return F.mont800;
+      if (weight === '700') return F.mont700;
+      return F.mont500;
+    };
+
     const renderBlock = (
-      block: { top: number; left: number; fontSize: number; fontWeight?: string; textAlign?: string; color?: string },
+      block: { top: number; left: number; fontSize: number; fontWeight?: string; textAlign?: string; color?: string; width?: number },
       content: string,
       key: string,
     ) => {
       if (!content) return null;
+      const hasColumnWidth = block.width != null;
       const isCenter = block.textAlign === 'center';
       const isRight = block.textAlign === 'right';
       const color = getThemeBlockColor(key, themeColors);
+
+      let blockLeft: number | undefined;
+      let blockRight: number | undefined;
+      let blockWidth: number | undefined;
+
+      if (hasColumnWidth) {
+        blockLeft = block.left * CANVAS_W;
+        blockWidth = block.width! * CANVAS_W;
+      } else if (isCenter) {
+        blockLeft = 0;
+        blockWidth = CANVAS_W;
+      } else if (isRight) {
+        blockRight = (1 - block.left) * CANVAS_W;
+      } else {
+        blockLeft = block.left * CANVAS_W;
+      }
 
       return (
         <Text
@@ -54,14 +79,14 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
             {
               position: 'absolute',
               top: block.top * canvasH,
-              left: isCenter ? 0 : isRight ? undefined : block.left * CANVAS_W,
-              right: isRight ? (1 - block.left) * CANVAS_W : undefined,
-              width: isCenter ? CANVAS_W : undefined,
+              left: blockLeft,
+              right: blockRight,
+              width: blockWidth,
               fontSize: block.fontSize,
               fontWeight: (block.fontWeight as any) ?? '400',
               textAlign: (block.textAlign as any) ?? 'center',
               color,
-              fontFamily: F.inter400,
+              fontFamily: getFontFamily(key, block.fontWeight),
             },
           ]}
         >
@@ -114,53 +139,87 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
         {renderBlock(template.blocks.date, cardData.date, 'date')}
 
         {state.dataToggles.showDistance && (
+          <Text
+            key="dist"
+            style={[
+              s.blockText,
+              {
+                position: 'absolute',
+                top: template.blocks.distance.top * canvasH,
+                left: 0,
+                width: CANVAS_W,
+                fontSize: template.blocks.distance.fontSize,
+                fontWeight: (template.blocks.distance.fontWeight as any) ?? '700',
+                textAlign: 'center',
+                color: getThemeBlockColor('dist', themeColors),
+                fontFamily: getFontFamily('dist', template.blocks.distance.fontWeight),
+              },
+            ]}
+          >
+            {cardData.distanceKm}
+            <Text style={{ fontSize: template.blocks.distanceUnit.fontSize, color: getThemeBlockColor('unit', themeColors), fontFamily: F.inter400 }}>
+              {' km'}
+            </Text>
+          </Text>
+        )}
+
+        {state.dataToggles.showTime && (
           <>
-            {renderBlock(template.blocks.distance, cardData.distanceKm, 'dist')}
-            {renderBlock(template.blocks.distanceUnit, 'km', 'unit')}
+            {renderBlock(template.blocks.time, cardData.timeDisplay, 'time')}
+            {renderBlock(template.blocks.timeLabel, '시간', 'timeL')}
           </>
         )}
 
         {state.dataToggles.showPace && (
           <>
             {renderBlock(template.blocks.pace, cardData.paceDisplay, 'pace')}
-            {renderBlock(template.blocks.paceLabel, 'Pace', 'paceL')}
-          </>
-        )}
-
-        {state.dataToggles.showTime && (
-          <>
-            {renderBlock(template.blocks.time, cardData.timeDisplay, 'time')}
-            {renderBlock(template.blocks.timeLabel, 'Time', 'timeL')}
+            {renderBlock(template.blocks.paceLabel, '페이스', 'paceL')}
           </>
         )}
 
         {state.dataToggles.showHeartRate && cardData.heartRate && (
-          renderBlock(template.blocks.pace, `${cardData.heartRate} bpm`, 'hr')
+          <>
+            {renderBlock(template.blocks.heartRate, cardData.heartRate, 'hr')}
+            {renderBlock(template.blocks.heartRateLabel, '심박수', 'hrL')}
+          </>
         )}
 
-        {/* GPS route placeholder */}
-        {cardData.hasRoute && state.backgroundType !== 'map' && (
-          <View
-            style={[
-              s.routeBadge,
-              {
+        {/* GPS route drawing */}
+        {cardData.hasRoute && routeCoords.length >= 2 && state.backgroundType !== 'map' && (() => {
+          const routeW = CANVAS_W * 0.65;
+          const routeH = canvasH * 0.22;
+          const routeTop = template.blocks.route.top * canvasH - routeH / 2;
+          const routeLeft = (CANVAS_W - routeW) / 2;
+          return (
+            <View
+              style={{
                 position: 'absolute',
-                top: template.blocks.route.top * canvasH - 16,
-                alignSelf: 'center',
-                left: 0,
-                right: 0,
-              },
-            ]}
-          >
-            <View style={s.routeInner}>
-              <MapPin size={14} color="#FFFFFFB3" />
-              <Text style={s.routeText}>GPS 경로</Text>
+                top: routeTop,
+                left: routeLeft,
+                width: routeW,
+                height: routeH,
+              }}
+            >
+              <RoutePathSvg
+                coordinates={routeCoords}
+                width={routeW}
+                height={routeH}
+                strokeColor={themeColors.muted}
+                strokeWidth={2}
+                padding={8}
+              />
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* Logo watermark */}
-        {renderBlock(template.blocks.logo, 'RunningLog', 'logo')}
+        <View style={s.logoContainer}>
+          <Image
+            source={Logo.png}
+            style={s.logoImage}
+            contentFit="contain"
+          />
+        </View>
       </ViewShot>
     );
   },
@@ -175,21 +234,20 @@ const s = StyleSheet.create({
   blockText: {
     letterSpacing: 0.3,
   },
-  routeBadge: {
+  logoContainer: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.8,
   },
-  routeInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#FFFFFF33',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  routeText: {
-    color: '#FFFFFFB3',
-    fontSize: 12,
+  logoImage: {
+    width: 22,
+    height: 22,
   },
 });

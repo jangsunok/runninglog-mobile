@@ -47,6 +47,21 @@ function normalizeCoords(coords: [number, number][] | ApiCoordinate[]): Coordina
   );
 }
 
+/** 10.10 → "10.1", 10.12 → "10.12", 10.00 → "10.0" */
+function formatShareDistance(km: number): string {
+  const fixed = km.toFixed(2);
+  return fixed.endsWith('0') ? km.toFixed(1) : fixed;
+}
+
+/** "0:50" → "00:50", "1:28:45" → "01:28:45" — 시가 0이면 MM:SS */
+function formatShareDuration(raw: string | undefined | null): string {
+  if (!raw) return '00:00';
+  const parts = raw.split(':').map((p) => p.trim());
+  while (parts.length < 3) parts.unshift('0');
+  const [h, m, s] = parts.map((p) => p.padStart(2, '0'));
+  return h === '00' ? `${m}:${s}` : `${h}:${m}:${s}`;
+}
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   const y = d.getFullYear();
@@ -98,7 +113,7 @@ export default function ShareEditScreen() {
     backgroundColor: 'transparent',
     dimLevel: 0,
     templateId: 'basic',
-    textTheme: 'default',
+    textTheme: 'defaultBlack',
     dataToggles: { ...DEFAULT_DATA_TOGGLES },
     activeTab: 'text',
     isExporting: false,
@@ -131,13 +146,13 @@ export default function ShareEditScreen() {
 
   const cardData: ShareCardData = useMemo(() => {
     if (!activity) {
-      return { date: '', distanceKm: '0.00', paceDisplay: "--'--\"", timeDisplay: '00:00:00', heartRate: null, hasRoute: false, hasHeartRate: false };
+      return { date: '', distanceKm: '0.0', paceDisplay: "--'--\"", timeDisplay: '00:00', heartRate: null, hasRoute: false, hasHeartRate: false };
     }
     return {
       date: formatDate(activity.started_at),
-      distanceKm: activity.distance_km.toFixed(2),
+      distanceKm: formatShareDistance(activity.distance_km),
       paceDisplay: activity.average_pace_display?.trim() || "--'--\"",
-      timeDisplay: activity.duration_display || '00:00:00',
+      timeDisplay: formatShareDuration(activity.duration_display),
       heartRate: activity.average_heart_rate ? `${activity.average_heart_rate}` : null,
       hasRoute: (activity.route_coordinates?.length ?? 0) >= 2,
       hasHeartRate: activity.average_heart_rate != null && activity.average_heart_rate > 0,

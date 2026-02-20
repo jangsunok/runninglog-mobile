@@ -6,7 +6,7 @@ export type TemplateId = 'basic' | 'minimal' | 'nature' | 'energy';
 
 export type MainTab = 'text' | 'background' | 'template' | 'data';
 
-export type TextTheme = 'default' | 'white' | 'black';
+export type TextTheme = 'default' | 'defaultBlack' | 'white' | 'black';
 
 export interface DataToggles {
   showDistance: boolean;
