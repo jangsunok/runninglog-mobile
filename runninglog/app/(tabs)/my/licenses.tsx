@@ -28,7 +28,6 @@ const LICENSES = [
   { name: 'Expo Linear Gradient', license: 'MIT', url: 'https://github.com/expo/expo' },
   { name: 'Expo Blur', license: 'MIT', url: 'https://github.com/expo/expo' },
   { name: 'Expo Secure Store', license: 'MIT', url: 'https://github.com/expo/expo' },
-  { name: 'Naver Map', license: 'MIT', url: 'https://github.com/mj-studio-library/react-native-naver-map' },
   { name: 'Kakao SDK', license: 'MIT', url: 'https://github.com/millo-L/react-native-kakao' },
   { name: 'Zustand', license: 'MIT', url: 'https://github.com/pmndrs/zustand' },
 ];
