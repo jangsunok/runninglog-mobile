@@ -10,7 +10,7 @@ import {
   StatusBar,
   Text,
 } from 'react-native';
-import { ChevronLeft, Share2, Heart, TrendingUp, Mountain } from 'lucide-react-native';
+import { ChevronLeft, ChevronDown, Share2, Heart } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient as ExpoGradient } from 'expo-linear-gradient';
@@ -78,6 +78,30 @@ function koreanDate(iso: string, endIso?: string): string {
   return r;
 }
 
+function durationToSec(dur: string): number {
+  const p = dur.split(':').map(Number);
+  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+  if (p.length === 2) return p[0] * 60 + p[1];
+  return p[0] || 0;
+}
+
+function formatTimeAxis(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.floor(totalSec % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function computeTimeXLabels(splits: ActivitySplit[], count: number = 6): string[] {
+  let total = 0;
+  for (const sp of splits) total += durationToSec(sp.duration);
+  if (total <= 0) return [];
+  return Array.from({ length: count }, (_, i) =>
+    formatTimeAxis(Math.round((i / (count - 1)) * total)),
+  );
+}
+
 function areaPath(data: number[], w: number, h: number, minV: number, maxV: number) {
   if (data.length < 2) return { line: '', area: '' };
   const rng = maxV - minV || 1;
@@ -137,7 +161,6 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
   const cMin = mn - pad;
   const cMax = mx + pad;
 
-  // Invert: lower pace (faster) at top → use (cMax + cMin - v) so faster = higher
   const inv = secs.map(v => cMax + cMin - v);
   const { line, area } = areaPath(inv, PLOT_W, PLOT_H, cMin, cMax);
 
@@ -150,25 +173,33 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
   });
 
   const avgY = PLOT_H - ((cMax + cMin - avgSec - cMin) / paceRange) * PLOT_H;
+  const timeLabels = computeTimeXLabels(splits);
 
   return (
     <View style={st.chartSection}>
       <View style={st.chartHeader}>
         <View style={st.chartTitleWrap}>
-          <TrendingUp size={18} color={PACE_BLUE} />
           <Text style={st.chartTitle}>페이스</Text>
+          <ChevronDown size={16} color={WHITE} />
         </View>
+        <Text style={st.helpText}>도움말</Text>
       </View>
       <View style={st.hLine} />
       <View style={st.chartStatsRow}>
         <View style={st.chartStatCol}>
+          <View style={st.chartStatValRow}>
+            <Text style={st.chartStatVal}>{avgPace}</Text>
+            <Text style={st.chartStatUnit}>/km</Text>
+          </View>
           <Text style={st.chartStatLabel}>평균</Text>
-          <Text style={st.chartStatVal}>{avgPace}</Text>
         </View>
         <View style={st.chartStatDiv} />
         <View style={st.chartStatCol}>
+          <View style={st.chartStatValRow}>
+            <Text style={st.chartStatVal}>{bestPace}</Text>
+            <Text style={st.chartStatUnit}>/km</Text>
+          </View>
           <Text style={st.chartStatLabel}>최고</Text>
-          <Text style={st.chartStatVal}>{bestPace}</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row' }}>
@@ -193,9 +224,12 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
         </Svg>
       </View>
       <View style={st.xRow}>
-        {splits.map(sp => (
-          <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+        {timeLabels.map((l, i) => (
+          <Text key={i} style={st.xLabel}>{l}</Text>
         ))}
+      </View>
+      <View style={st.xAxisLabelRow}>
+        <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
       </View>
     </View>
   );
@@ -248,8 +282,8 @@ function SplitTable({ splits, avgPace }: { splits: ActivitySplit[]; avgPace: str
 
 // ── ElevChart ────────────────────────────────
 
-function ElevChart({ data, splits, gain, loss }: {
-  data: number[]; splits: ActivitySplit[]; gain: number | null; loss: number | null;
+function ElevChart({ data, splits }: {
+  data: number[]; splits: ActivitySplit[];
 }) {
   const mn = Math.min(...data);
   const mx = Math.max(...data);
@@ -264,24 +298,34 @@ function ElevChart({ data, splits, gain, loss }: {
     `${Math.round(cMax - (i * (cMax - cMin)) / (yN - 1))}`,
   );
 
+  const minElev = Math.round(mn);
+  const maxElev = Math.round(mx);
+  const timeLabels = computeTimeXLabels(splits);
+
   return (
     <View style={st.chartSection}>
       <View style={st.chartHeader}>
         <View style={st.chartTitleWrap}>
-          <Mountain size={18} color={ELEV_GREEN} />
           <Text style={st.chartTitle}>고도</Text>
+          <ChevronDown size={16} color={WHITE} />
         </View>
       </View>
       <View style={st.hLine} />
       <View style={st.chartStatsRow}>
         <View style={st.chartStatCol}>
-          <Text style={st.chartStatLabel}>상승</Text>
-          <Text style={st.chartStatVal}>{gain != null ? `${gain}m` : '—'}</Text>
+          <View style={st.chartStatValRow}>
+            <Text style={st.chartStatVal}>{minElev}</Text>
+            <Text style={st.chartStatUnit}>m</Text>
+          </View>
+          <Text style={st.chartStatLabel}>최소</Text>
         </View>
         <View style={st.chartStatDiv} />
         <View style={st.chartStatCol}>
-          <Text style={st.chartStatLabel}>하강</Text>
-          <Text style={st.chartStatVal}>{loss != null ? `${loss}m` : '—'}</Text>
+          <View style={st.chartStatValRow}>
+            <Text style={st.chartStatVal}>{maxElev}</Text>
+            <Text style={st.chartStatUnit}>m</Text>
+          </View>
+          <Text style={st.chartStatLabel}>최대</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row' }}>
@@ -305,9 +349,12 @@ function ElevChart({ data, splits, gain, loss }: {
         </Svg>
       </View>
       <View style={st.xRow}>
-        {splits.map(sp => (
-          <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+        {timeLabels.map((l, i) => (
+          <Text key={i} style={st.xLabel}>{l}</Text>
         ))}
+      </View>
+      <View style={st.xAxisLabelRow}>
+        <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
       </View>
     </View>
   );
@@ -324,7 +371,17 @@ function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] })
   const mn = Math.min(...data);
   const mx = Math.max(...data);
   const pad = Math.max((mx - mn) * 0.3, 5);
-  const { line, area } = areaPath(data, C_TOTAL_W, 100, mn - pad, mx + pad);
+  const cMin = mn - pad;
+  const cMax = mx + pad;
+  const MINI_H = 100;
+  const miniPlotW = C_TOTAL_W - Y_W;
+  const { line, area } = areaPath(data, miniPlotW, MINI_H, cMin, cMax);
+
+  const yN = 3;
+  const yGap = MINI_H / (yN - 1);
+  const yLabels = Array.from({ length: yN }, (_, i) =>
+    `${Math.round(cMax - (i * (cMax - cMin)) / (yN - 1))}`,
+  );
 
   return (
     <View style={st.chartSection}>
@@ -332,16 +389,23 @@ function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] })
         <Text style={st.chartTitle}>케이던스</Text>
         <Text style={st.subtitleText}>평균 {avg} spm</Text>
       </View>
-      <Svg width={C_TOTAL_W} height={100}>
-        <Defs>
-          <LinearGradient id="cG" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#FF6F0030" />
-            <Stop offset="1" stopColor="#FF6F0005" />
-          </LinearGradient>
-        </Defs>
-        {area ? <Path d={area} fill="url(#cG)" /> : null}
-        {line ? <Path d={line} fill="none" stroke={BrandOrange} strokeWidth={2.5} strokeLinecap="round" /> : null}
-      </Svg>
+      <View style={{ flexDirection: 'row' }}>
+        <View style={{ width: Y_W, height: MINI_H }}>
+          {yLabels.map((l, i) => (
+            <Text key={i} style={[st.yLabel, { position: 'absolute', top: i * yGap - 5, fontSize: 9 }]}>{l}</Text>
+          ))}
+        </View>
+        <Svg width={miniPlotW} height={MINI_H}>
+          <Defs>
+            <LinearGradient id="cG" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#FF6F0030" />
+              <Stop offset="1" stopColor="#FF6F0005" />
+            </LinearGradient>
+          </Defs>
+          {area ? <Path d={area} fill="url(#cG)" /> : null}
+          {line ? <Path d={line} fill="none" stroke={BrandOrange} strokeWidth={2.5} strokeLinecap="round" /> : null}
+        </Svg>
+      </View>
       <View style={st.xRow}>
         {splits.map(sp => (
           <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
@@ -360,7 +424,17 @@ function HRSection({ data, splits, avgHR, maxHR, zones }: {
   const mn = Math.min(...data);
   const mx = Math.max(...data);
   const pad = Math.max((mx - mn) * 0.3, 10);
-  const { line, area } = areaPath(data, C_TOTAL_W, 100, mn - pad, mx + pad);
+  const cMin = mn - pad;
+  const cMax = mx + pad;
+  const MINI_H = 100;
+  const miniPlotW = C_TOTAL_W - Y_W;
+  const { line, area } = areaPath(data, miniPlotW, MINI_H, cMin, cMax);
+
+  const yN = 4;
+  const yGap = MINI_H / (yN - 1);
+  const yLabels = Array.from({ length: yN }, (_, i) =>
+    `${Math.round(cMax - (i * (cMax - cMin)) / (yN - 1))}`,
+  );
 
   const xLabels = splits
     .filter(sp => sp.average_heart_rate != null)
@@ -375,16 +449,23 @@ function HRSection({ data, splits, avgHR, maxHR, zones }: {
           <Text style={st.subtitleText}>평균 {avgHR ?? '—'} bpm</Text>
         </View>
       </View>
-      <Svg width={C_TOTAL_W} height={100}>
-        <Defs>
-          <LinearGradient id="hG" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#EF444430" />
-            <Stop offset="1" stopColor="#EF444405" />
-          </LinearGradient>
-        </Defs>
-        {area ? <Path d={area} fill="url(#hG)" /> : null}
-        {line ? <Path d={line} fill="none" stroke={HeartRed} strokeWidth={2.5} strokeLinecap="round" /> : null}
-      </Svg>
+      <View style={{ flexDirection: 'row' }}>
+        <View style={{ width: Y_W, height: MINI_H }}>
+          {yLabels.map((l, i) => (
+            <Text key={i} style={[st.yLabel, { position: 'absolute', top: i * yGap - 5, fontSize: 9 }]}>{l}</Text>
+          ))}
+        </View>
+        <Svg width={miniPlotW} height={MINI_H}>
+          <Defs>
+            <LinearGradient id="hG" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#EF444430" />
+              <Stop offset="1" stopColor="#EF444405" />
+            </LinearGradient>
+          </Defs>
+          {area ? <Path d={area} fill="url(#hG)" /> : null}
+          {line ? <Path d={line} fill="none" stroke={HeartRed} strokeWidth={2.5} strokeLinecap="round" /> : null}
+        </Svg>
+      </View>
       <View style={st.xRow}>
         {xLabels.map((l, i) => (
           <Text key={i} style={st.xLabel}>{l}</Text>
@@ -584,7 +665,7 @@ export default function RunDetailScreen() {
       {elevArr.length >= 2 && (
         <>
           <View style={st.divThick} />
-          <ElevChart data={elevArr} splits={activity.splits} gain={activity.elevation_gain} loss={activity.elevation_loss} />
+          <ElevChart data={elevArr} splits={activity.splits} />
         </>
       )}
 
@@ -649,14 +730,19 @@ const st = StyleSheet.create({
   chartSection: { backgroundColor: BG, paddingVertical: 24, paddingHorizontal: 24, gap: 16 },
   chartHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   chartTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chartTitle: { color: WHITE, fontFamily: F.inter700, fontSize: 18 },
+  chartTitle: { color: WHITE, fontFamily: F.inter700, fontSize: 16 },
+  helpText: { color: PACE_BLUE, fontFamily: F.inter500, fontSize: 14 },
   hLine: { height: 1, backgroundColor: GRID },
   chartStatsRow: { flexDirection: 'row', alignItems: 'center' },
   chartStatCol: { flex: 1, alignItems: 'center', gap: 4 },
   chartStatDiv: { width: 1, height: 45, backgroundColor: GRID },
-  chartStatLabel: { color: TERTIARY, fontSize: 12 },
+  chartStatLabel: { color: TERTIARY, fontSize: 13 },
   chartStatVal: { color: WHITE, fontFamily: F.inter700, fontSize: 20 },
+  chartStatValRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  chartStatUnit: { color: TERTIARY, fontFamily: F.inter500, fontSize: 13, marginBottom: 2 },
   subtitleText: { color: TERTIARY, fontSize: 13 },
+  xAxisLabelRow: { alignItems: 'center', marginTop: 4 },
+  xAxisLabelText: { color: MUTED, fontSize: 12 },
 
   yLabel: { color: MUTED, fontSize: 11 },
   xRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: 8 },
@@ -668,7 +754,7 @@ const st = StyleSheet.create({
   splitRow: { flexDirection: 'row', alignItems: 'center', height: 32 },
   splitCell: { color: WHITE, fontFamily: F.inter500, fontSize: 13 },
   splitBarWrap: { flex: 1, height: 14, backgroundColor: '#FFFFFF10', borderRadius: 4, marginHorizontal: 8 },
-  splitBar: { height: 14, backgroundColor: BrandOrange, borderRadius: 4 },
+  splitBar: { height: 14, backgroundColor: '#4A90D9', borderRadius: 4 },
 
   // HR Zones
   zoneSection: { gap: 8, paddingTop: 16 },

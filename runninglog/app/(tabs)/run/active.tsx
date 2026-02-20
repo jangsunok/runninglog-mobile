@@ -97,7 +97,7 @@ export default function RunActiveScreen() {
     async (record: RunRecord) => {
       const result = await sync(record);
       if (result != null) {
-        router.replace('/(tabs)');
+        router.replace(`/(tabs)/run/${result.activity_id}` as any);
       } else {
         Alert.alert(
           '저장 실패',
