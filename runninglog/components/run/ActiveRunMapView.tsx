@@ -13,8 +13,8 @@ import {
   useEffect,
   useMemo,
 } from 'react';
-import { Platform, StyleSheet } from 'react-native';
-import MapView, { Polyline, Circle, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
+import { StyleSheet } from 'react-native';
+import MapView, { Polyline, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { Coordinate } from '@/types/run';
 import { BrandOrange } from '@/constants/theme';
 
@@ -138,7 +138,7 @@ function ActiveRunMapViewInner(
   return (
     <MapView
       ref={mapRef}
-      provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+      provider={PROVIDER_GOOGLE}
       style={[StyleSheet.absoluteFill, style]}
       initialRegion={region}
       region={region}

@@ -25,6 +25,15 @@ const KAKAO_MAVEN_URL = 'https://devrepo.kakao.com/nexus/content/groups/public/'
 
 const expo = {
   ...base.expo,
+  ios: {
+    ...base.expo.ios,
+    ...(googleMapsApiKey && {
+      config: {
+        ...base.expo.ios?.config,
+        googleMapsApiKey,
+      },
+    }),
+  },
   android: {
     ...base.expo.android,
     ...(googleMapsApiKey && {
