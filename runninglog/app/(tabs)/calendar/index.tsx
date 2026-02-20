@@ -442,7 +442,7 @@ export default function CalendarScreen() {
       bigDistanceLabel: { color: theme.textSecondary },
       bigDistanceUnit: { color: theme.text },
       statsCard: { backgroundColor: theme.lightGray },
-      statValue: { color: BrandOrange },
+      statValue: { color: theme.text },
       statLabel: { color: theme.textSecondary },
       detailTitle: { color: theme.text },
       recordMain: { color: theme.text },
