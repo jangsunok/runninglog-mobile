@@ -1,6 +1,6 @@
 /**
- * Active Run MapView - 네이버 지도 기반 실시간 러닝 경로 표시
- * - 시작/현재 위치 주황색 원형 마커(NaverMapCircleOverlay), 경로 폴리라인
+ * Active Run MapView - 구글맵(react-native-maps) 기반 실시간 러닝 경로 표시
+ * - 시작/현재 위치 주황색 원형 마커(Circle), 경로 폴리라인
  * - 좌표가 없을 때는 initialGpsRegion 또는 서울 기본 중심 표시
  * - ref로 moveToRegion() 노출 → 현재 위치 버튼 등에서 사용
  */
@@ -14,6 +14,7 @@ import {
   useMemo,
 } from 'react';
 import { StyleSheet, View, Text, Platform } from 'react-native';
+import MapView, { Polyline, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { Coordinate } from '@/types/run';
 import { BrandOrange } from '@/constants/theme';
 
@@ -26,20 +27,6 @@ export type ActiveRunMapViewRef = {
     longitudeDelta: number;
   }) => void;
 };
-
-// 네이버 지도는 네이티브(iOS/Android) 전용. 웹/미지원 환경에서는 플레이스홀더
-let NaverMapView: any = null;
-let NaverMapPolylineOverlay: any = null;
-let NaverMapCircleOverlay: any = null;
-
-try {
-  const NaverMap = require('@mj-studio/react-native-naver-map');
-  NaverMapView = NaverMap.NaverMapView;
-  NaverMapPolylineOverlay = NaverMap.NaverMapPolylineOverlay;
-  NaverMapCircleOverlay = NaverMap.NaverMapCircleOverlay;
-} catch {
-  // Development Build 없이 실행 시 fallback
-}
 
 /** 서울 시청 기본 중심 (좌표 없을 때) */
 const DEFAULT_REGION = {
@@ -91,6 +78,10 @@ function computeRegion(coords: Coordinate[], padding = 1.4): typeof DEFAULT_REGI
   };
 }
 
+/** Circle 반경(m). 지도에서 보이는 작은 원 */
+const CIRCLE_RADIUS_M = 15;
+const CIRCLE_STROKE_M = 20;
+
 function ActiveRunMapViewInner(
   {
     coordinates,
@@ -102,7 +93,7 @@ function ActiveRunMapViewInner(
   }: ActiveRunMapViewProps,
   ref: Ref<ActiveRunMapViewRef>
 ) {
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapView>(null);
 
   const region = useMemo(() => {
     if (regionProp) return regionProp;
@@ -116,16 +107,18 @@ function ActiveRunMapViewInner(
 
   // 최신 좌표로 카메라를 따라감 (isFollowingUser 활성 시)
   useEffect(() => {
-    if (!isFollowingUser || coordinates.length === 0 || !mapRef.current?.animateRegionTo) return;
+    if (!isFollowingUser || coordinates.length === 0 || !mapRef.current) return;
     const latest = coordinates[coordinates.length - 1];
-    mapRef.current.animateRegionTo({
-      latitude: latest.latitude,
-      longitude: latest.longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-      duration: 300,
-    });
-  }, [coordinates.length, isFollowingUser]);
+    mapRef.current.animateToRegion(
+      {
+        latitude: latest.latitude,
+        longitude: latest.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      300
+    );
+  }, [coordinates.length, isFollowingUser, coordinates]);
 
   useImperativeHandle(
     ref,
@@ -136,75 +129,76 @@ function ActiveRunMapViewInner(
         latitudeDelta: number;
         longitudeDelta: number;
       }) => {
-        mapRef.current?.animateRegionTo?.({ ...r, duration: 300 });
+        mapRef.current?.animateToRegion?.(r, 300);
       },
     }),
     []
   );
 
-  if (Platform.OS === 'web' || !NaverMapView) {
+  if (Platform.OS === 'web') {
     return (
       <View style={[styles.placeholder, style]}>
         <Text style={styles.placeholderText}>지도 (Development Build 필요)</Text>
-        <Text style={styles.placeholderSub}>네이버 지도는 iOS/Android 빌드에서 표시됩니다.</Text>
+        <Text style={styles.placeholderSub}>구글맵은 iOS/Android 빌드에서 표시됩니다.</Text>
       </View>
     );
   }
 
   return (
-    <NaverMapView
+    <MapView
       ref={mapRef}
+      provider={PROVIDER_GOOGLE}
       style={[StyleSheet.absoluteFill, style]}
       initialRegion={region}
       region={region}
-      isShowLocationButton={true}
-      isShowCompass={false}
-      isShowScaleBar={false}
+      showsUserLocation={false}
+      showsMyLocationButton={false}
+      showsCompass={false}
       mapPadding={mapPadding}
     >
       {coordinates.length >= 2 && (
-        <NaverMapPolylineOverlay
-          coords={coordinates.map((c) => ({ latitude: c.latitude, longitude: c.longitude }))}
-          width={5}
-          color={BrandOrange}
+        <Polyline
+          coordinates={coordinates.map((c) => ({ latitude: c.latitude, longitude: c.longitude }))}
+          strokeWidth={5}
+          strokeColor={BrandOrange}
           zIndex={10}
         />
       )}
       {/* 초기 GPS 위치 마커 (러닝 시작 전, 주황색 원형) */}
       {coordinates.length === 0 && initialGpsRegion && (
-        <NaverMapCircleOverlay
-          latitude={initialGpsRegion.latitude}
-          longitude={initialGpsRegion.longitude}
-          radius={10}
-          color={BrandOrange}
-          outlineWidth={2}
-          outlineColor="#FFFFFF"
+        <Circle
+          center={{
+            latitude: initialGpsRegion.latitude,
+            longitude: initialGpsRegion.longitude,
+          }}
+          radius={CIRCLE_RADIUS_M}
+          fillColor={BrandOrange}
+          strokeWidth={2}
+          strokeColor="#FFFFFF"
           zIndex={20}
         />
       )}
       {startCoord && (
-        <NaverMapCircleOverlay
-          latitude={startCoord.latitude}
-          longitude={startCoord.longitude}
-          radius={8}
-          color={BrandOrange}
-          outlineWidth={2}
-          outlineColor="#FFFFFF"
+        <Circle
+          center={{ latitude: startCoord.latitude, longitude: startCoord.longitude }}
+          radius={CIRCLE_RADIUS_M}
+          fillColor={BrandOrange}
+          strokeWidth={2}
+          strokeColor="#FFFFFF"
           zIndex={20}
         />
       )}
       {currentCoord && coordinates.length > 1 && (
-        <NaverMapCircleOverlay
-          latitude={currentCoord.latitude}
-          longitude={currentCoord.longitude}
-          radius={10}
-          color={BrandOrange}
-          outlineWidth={2}
-          outlineColor="#FFFFFF"
+        <Circle
+          center={{ latitude: currentCoord.latitude, longitude: currentCoord.longitude }}
+          radius={CIRCLE_STROKE_M}
+          fillColor={BrandOrange}
+          strokeWidth={2}
+          strokeColor="#FFFFFF"
           zIndex={21}
         />
       )}
-    </NaverMapView>
+    </MapView>
   );
 }
 
