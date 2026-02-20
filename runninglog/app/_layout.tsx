@@ -17,11 +17,11 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import 'react-native-reanimated';
 
 import { SimpleToast } from '@/components/simple-toast';
+import { SplashLoadingScreen } from '@/components/splash-loading-screen';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 // 백그라운드 태스크 등록 (앱 로드 시 한 번 필요)
@@ -86,9 +86,7 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       {!ready ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" />
-        </View>
+        <SplashLoadingScreen />
       ) : (
         <>
           <Stack screenOptions={{ headerShown: false }}>

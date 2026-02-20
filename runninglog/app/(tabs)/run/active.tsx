@@ -388,6 +388,11 @@ export default function RunActiveScreen() {
   const startPauseIcon =
     status === 'idle' || status === 'paused' ? 'play-arrow' : 'pause';
 
+  const effectiveMapPadding =
+    coordinates.length > 0 && (status === 'running' || status === 'paused')
+      ? mapPadding
+      : { top: 0, bottom: 0, left: 0, right: 0 };
+
   return (
     <View style={styles.container}>
       {/* ── 전체 화면 지도 ─────────────────────────── */}
@@ -396,7 +401,7 @@ export default function RunActiveScreen() {
         coordinates={coordinates}
         initialGpsRegion={initialGpsRegion}
         isFollowingUser={status === 'running'}
-        mapPadding={mapPadding}
+        mapPadding={effectiveMapPadding}
         style={StyleSheet.absoluteFill}
       />
 
@@ -545,7 +550,9 @@ export default function RunActiveScreen() {
           </View>
           <Text style={styles.buttonText}>{startPauseLabel}</Text>
         </Pressable>
-        <EndRunButton onComplete={handleStop} disabled={saving} />
+        {(status === 'running' || status === 'paused') && (
+          <EndRunButton onComplete={handleStop} disabled={saving} />
+        )}
       </View>
 
       {/* ── 저장 오버레이 ──────────────────────────── */}
