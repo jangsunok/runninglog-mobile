@@ -78,8 +78,10 @@ function koreanDate(iso: string, endIso?: string): string {
   return r;
 }
 
-function durationToSec(dur: string): number {
+function durationToSec(dur: string | undefined | null): number {
+  if (!dur || typeof dur !== 'string') return 0;
   const p = dur.split(':').map(Number);
+  if (p.some(isNaN)) return 0;
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return p[0] || 0;
@@ -93,10 +95,10 @@ function formatTimeAxis(totalSec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function computeTimeXLabels(splits: ActivitySplit[], count: number = 6): string[] {
+function computeTimeXLabels(splits: ActivitySplit[], count: number = 6): string[] | null {
   let total = 0;
   for (const sp of splits) total += durationToSec(sp.duration);
-  if (total <= 0) return [];
+  if (total <= 0) return null;
   return Array.from({ length: count }, (_, i) =>
     formatTimeAxis(Math.round((i / (count - 1)) * total)),
   );
@@ -223,14 +225,24 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
           <Line x1={0} y1={avgY} x2={PLOT_W} y2={avgY} stroke="#FFFFFF66" strokeWidth={1} strokeDasharray="4,4" />
         </Svg>
       </View>
-      <View style={st.xRow}>
-        {timeLabels.map((l, i) => (
-          <Text key={i} style={st.xLabel}>{l}</Text>
-        ))}
-      </View>
-      <View style={st.xAxisLabelRow}>
-        <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
-      </View>
+      {timeLabels ? (
+        <>
+          <View style={[st.xRow, { paddingLeft: Y_W }]}>
+            {timeLabels.map((l, i) => (
+              <Text key={i} style={st.xLabel}>{l}</Text>
+            ))}
+          </View>
+          <View style={st.xAxisLabelRow}>
+            <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
+          </View>
+        </>
+      ) : (
+        <View style={[st.xRow, { paddingLeft: Y_W }]}>
+          {splits.map(sp => (
+            <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -348,14 +360,24 @@ function ElevChart({ data, splits }: {
           {line ? <Path d={line} fill="none" stroke={ELEV_GREEN} strokeWidth={1.5} strokeLinecap="round" /> : null}
         </Svg>
       </View>
-      <View style={st.xRow}>
-        {timeLabels.map((l, i) => (
-          <Text key={i} style={st.xLabel}>{l}</Text>
-        ))}
-      </View>
-      <View style={st.xAxisLabelRow}>
-        <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
-      </View>
+      {timeLabels ? (
+        <>
+          <View style={[st.xRow, { paddingLeft: Y_W }]}>
+            {timeLabels.map((l, i) => (
+              <Text key={i} style={st.xLabel}>{l}</Text>
+            ))}
+          </View>
+          <View style={st.xAxisLabelRow}>
+            <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
+          </View>
+        </>
+      ) : (
+        <View style={[st.xRow, { paddingLeft: Y_W }]}>
+          {splits.map(sp => (
+            <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -406,7 +428,7 @@ function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] })
           {line ? <Path d={line} fill="none" stroke={BrandOrange} strokeWidth={2.5} strokeLinecap="round" /> : null}
         </Svg>
       </View>
-      <View style={st.xRow}>
+      <View style={[st.xRow, { paddingLeft: Y_W }]}>
         {splits.map(sp => (
           <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
         ))}
@@ -466,7 +488,7 @@ function HRSection({ data, splits, avgHR, maxHR, zones }: {
           {line ? <Path d={line} fill="none" stroke={HeartRed} strokeWidth={2.5} strokeLinecap="round" /> : null}
         </Svg>
       </View>
-      <View style={st.xRow}>
+      <View style={[st.xRow, { paddingLeft: Y_W }]}>
         {xLabels.map((l, i) => (
           <Text key={i} style={st.xLabel}>{l}</Text>
         ))}
