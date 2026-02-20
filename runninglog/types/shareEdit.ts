@@ -4,18 +4,9 @@ export type BackgroundType = 'gallery' | 'map' | 'color';
 
 export type TemplateId = 'basic' | 'minimal' | 'nature' | 'energy';
 
-export type MainTab = 'background' | 'template' | 'data' | 'sticker';
+export type MainTab = 'text' | 'background' | 'template' | 'data';
 
-export type StickerType = 'logo' | 'pb' | 'complete_run';
-
-export interface StickerItem {
-  id: string;
-  type: StickerType;
-  /** Normalized x position (0-1) relative to canvas */
-  x: number;
-  /** Normalized y position (0-1) relative to canvas */
-  y: number;
-}
+export type TextTheme = 'default' | 'white' | 'black';
 
 export interface DataToggles {
   showDistance: boolean;
@@ -32,8 +23,8 @@ export interface ShareEditState {
   backgroundColor: string;
   dimLevel: number;
   templateId: TemplateId;
+  textTheme: TextTheme;
   dataToggles: DataToggles;
-  stickers: StickerItem[];
   activeTab: MainTab;
   isExporting: boolean;
 }

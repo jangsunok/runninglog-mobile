@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StatusBar,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,12 +31,13 @@ import type {
   MainTab,
   BackgroundType,
   TemplateId,
-  StickerType,
-  StickerItem,
+  TextTheme,
 } from '@/types/shareEdit';
 
 const BG = '#F5F5F5';
 const WHITE = '#FFFFFF';
+const SCREEN_W = Dimensions.get('window').width;
+const CANVAS_W = SCREEN_W - 40;
 
 function normalizeCoords(coords: [number, number][] | ApiCoordinate[]): Coordinate[] {
   return coords.map((c) =>
@@ -53,6 +55,32 @@ function formatDate(iso: string): string {
   return `${y}.${m}.${day}`;
 }
 
+const CHECKER_CELL = 16;
+
+function CheckerboardPreview({ width, height }: { width: number; height: number }) {
+  const cols = Math.ceil(width / CHECKER_CELL);
+  const rows = Math.ceil(height / CHECKER_CELL);
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { borderRadius: 12, overflow: 'hidden' }]}>
+      {Array.from({ length: rows }, (_, row) => (
+        <View key={row} style={{ flexDirection: 'row' }}>
+          {Array.from({ length: cols }, (_, col) => (
+            <View
+              key={col}
+              style={{
+                width: CHECKER_CELL,
+                height: CHECKER_CELL,
+                backgroundColor: (row + col) % 2 === 0 ? '#FFFFFF' : '#E0E0E0',
+              }}
+            />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function ShareEditScreen() {
   const params = useLocalSearchParams<{ source?: string; id?: string }>();
   const activityId = params.id ? parseInt(params.id, 10) : NaN;
@@ -67,12 +95,12 @@ export default function ShareEditScreen() {
     aspectRatio: '9:16',
     backgroundType: 'color',
     backgroundUri: null,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: 'transparent',
     dimLevel: 0,
     templateId: 'basic',
+    textTheme: 'default',
     dataToggles: { ...DEFAULT_DATA_TOGGLES },
-    stickers: [],
-    activeTab: 'background',
+    activeTab: 'text',
     isExporting: false,
   });
 
@@ -160,18 +188,9 @@ export default function ShareEditScreen() {
     setPartial({ dimLevel: level });
   }, [setPartial]);
 
-  const handleAddSticker = useCallback((type: StickerType) => {
-    const newSticker: StickerItem = {
-      id: `${type}_${Date.now()}`,
-      type,
-      x: 0.5,
-      y: 0.5,
-    };
-    setEditState((prev) => ({
-      ...prev,
-      stickers: [...prev.stickers, newSticker],
-    }));
-  }, []);
+  const handleChangeTextTheme = useCallback((theme: TextTheme) => {
+    setPartial({ textTheme: theme });
+  }, [setPartial]);
 
   const handleComplete = useCallback(async () => {
     if (editState.isExporting) return;
@@ -230,7 +249,7 @@ export default function ShareEditScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Text style={st.headerCancel}>취소</Text>
         </Pressable>
-        <Text style={st.headerTitle}>공유 편집</Text>
+        <Text style={st.headerTitle}>공유 이미지 만들기</Text>
         <Pressable onPress={handleComplete} hitSlop={12} disabled={editState.isExporting}>
           <Text style={[st.headerDone, editState.isExporting && { opacity: 0.5 }]}>
             {editState.isExporting ? '저장 중...' : '완료'}
@@ -263,6 +282,12 @@ export default function ShareEditScreen() {
 
         {/* Canvas */}
         <View style={st.canvasWrap}>
+          {editState.backgroundType === 'color' && editState.backgroundColor === 'transparent' && (
+            <CheckerboardPreview
+              width={CANVAS_W}
+              height={editState.aspectRatio === '9:16' ? CANVAS_W * (16 / 9) : CANVAS_W}
+            />
+          )}
           <ShareEditCanvas
             ref={viewShotRef}
             state={editState}
@@ -279,12 +304,12 @@ export default function ShareEditScreen() {
           hasRoute={cardData.hasRoute}
           hasHeartRate={cardData.hasHeartRate}
           onChangeTab={handleChangeTab}
+          onChangeTextTheme={handleChangeTextTheme}
           onChangeBackground={handleChangeBackground}
           onPickPhoto={handlePickPhoto}
           onChangeTemplate={handleChangeTemplate}
           onToggleData={handleToggleData}
           onChangeDim={handleChangeDim}
-          onAddSticker={handleAddSticker}
         />
       </View>
     </View>

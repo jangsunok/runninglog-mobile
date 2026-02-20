@@ -1,10 +1,9 @@
-import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch, ScrollView } from 'react-native';
-import { Image as ImageIcon, Layout, BarChart3, Sticker, Plus, Map, Camera, Sun } from 'lucide-react-native';
+import { Type, Image as ImageIcon, Layout, BarChart3, Map, Camera, Sun } from 'lucide-react-native';
 
-import { BACKGROUND_COLORS, TEMPLATES } from '@/constants/shareEditTemplates';
+import { BACKGROUND_COLORS, TEMPLATES, TEXT_THEMES } from '@/constants/shareEditTemplates';
 import { BrandOrange } from '@/constants/theme';
-import type { MainTab, ShareEditState, BackgroundType, TemplateId, StickerType } from '@/types/shareEdit';
+import type { MainTab, ShareEditState, BackgroundType, TemplateId, TextTheme } from '@/types/shareEdit';
 
 const ACCENT = BrandOrange;
 const TAB_INACTIVE = '#9CA3AF';
@@ -15,19 +14,19 @@ interface ShareEditTabsProps {
   hasRoute: boolean;
   hasHeartRate: boolean;
   onChangeTab: (tab: MainTab) => void;
+  onChangeTextTheme: (theme: TextTheme) => void;
   onChangeBackground: (type: BackgroundType, color?: string) => void;
   onPickPhoto: () => void;
   onChangeTemplate: (id: TemplateId) => void;
   onToggleData: (key: string, value: boolean) => void;
   onChangeDim: (level: number) => void;
-  onAddSticker?: (type: StickerType) => void;
 }
 
 const TABS: { id: MainTab; label: string; Icon: any }[] = [
+  { id: 'text', label: '텍스트', Icon: Type },
   { id: 'background', label: '배경', Icon: ImageIcon },
   { id: 'template', label: '템플릿', Icon: Layout },
   { id: 'data', label: '데이터', Icon: BarChart3 },
-  { id: 'sticker', label: '스티커', Icon: Sticker },
 ];
 
 const DATA_ITEMS: { key: string; label: string; needsData?: boolean }[] = [
@@ -43,12 +42,12 @@ export function ShareEditTabs({
   hasRoute,
   hasHeartRate,
   onChangeTab,
+  onChangeTextTheme,
   onChangeBackground,
   onPickPhoto,
   onChangeTemplate,
   onToggleData,
   onChangeDim,
-  onAddSticker,
 }: ShareEditTabsProps) {
   return (
     <View style={s.container}>
@@ -75,6 +74,12 @@ export function ShareEditTabs({
 
       {/* Tab content */}
       <View style={s.content}>
+        {state.activeTab === 'text' && (
+          <TextThemeOptions
+            current={state.textTheme}
+            onChange={onChangeTextTheme}
+          />
+        )}
         {state.activeTab === 'background' && (
           <BackgroundOptions
             state={state}
@@ -96,9 +101,6 @@ export function ShareEditTabs({
             hasHeartRate={hasHeartRate}
             onToggle={onToggleData}
           />
-        )}
-        {state.activeTab === 'sticker' && (
-          <StickerOptions onAddSticker={onAddSticker} />
         )}
       </View>
     </View>
@@ -160,7 +162,20 @@ function BackgroundOptions({
             style={[s.optCard, active && s.optCardActive]}
             onPress={() => onChangeBackground('color', c.color)}
           >
-            <View style={[s.colorSwatch, { backgroundColor: c.color }]} />
+            {c.color === 'transparent' ? (
+              <View style={[s.colorSwatch, s.transparentSwatch]}>
+                <View style={{ flexDirection: 'row', flex: 1 }}>
+                  <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+                  <View style={{ flex: 1, backgroundColor: '#D1D5DB' }} />
+                </View>
+                <View style={{ flexDirection: 'row', flex: 1 }}>
+                  <View style={{ flex: 1, backgroundColor: '#D1D5DB' }} />
+                  <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+                </View>
+              </View>
+            ) : (
+              <View style={[s.colorSwatch, { backgroundColor: c.color }]} />
+            )}
             <Text style={[s.optLabel, active && s.optLabelActive]}>{c.label}</Text>
           </Pressable>
         );
@@ -248,27 +263,29 @@ function DataOptions({
   );
 }
 
-const STICKER_ITEMS: { type: StickerType; label: string }[] = [
-  { type: 'logo', label: '로고' },
-  { type: 'pb', label: 'PB' },
-  { type: 'complete_run', label: '완런' },
-];
-
-function StickerOptions({ onAddSticker }: { onAddSticker?: (type: StickerType) => void }) {
+function TextThemeOptions({ current, onChange }: { current: TextTheme; onChange: (t: TextTheme) => void }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.optRow}>
-      {STICKER_ITEMS.map((item) => (
-        <Pressable
-          key={item.type}
-          style={s.stickerCard}
-          onPress={() => onAddSticker?.(item.type)}
-        >
-          <View style={s.stickerPreview}>
-            <Plus size={16} color="#9CA3AF" />
-          </View>
-          <Text style={s.optLabel}>{item.label}</Text>
-        </Pressable>
-      ))}
+      {TEXT_THEMES.map((theme) => {
+        const active = current === theme.id;
+        return (
+          <Pressable
+            key={theme.id}
+            style={[s.themeCard, active && s.themeCardActive]}
+            onPress={() => onChange(theme.id)}
+          >
+            <View style={[s.themePreview, theme.id === 'black' && s.themePreviewLight]}>
+              <Text style={[s.themePreviewNumber, { color: theme.colors.primary }]}>
+                5.00
+              </Text>
+              <Text style={[s.themePreviewLabel, { color: theme.colors.muted }]}>
+                km
+              </Text>
+            </View>
+            <Text style={[s.optLabel, active && s.optLabelActive]}>{theme.label}</Text>
+          </Pressable>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -349,6 +366,9 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
+  transparentSwatch: {
+    overflow: 'hidden',
+  },
   templateCard: {
     alignItems: 'center',
     gap: 6,
@@ -393,22 +413,37 @@ const s = StyleSheet.create({
   dataLabelDisabled: {
     color: '#D1D5DB',
   },
-  stickerCard: {
+  themeCard: {
     alignItems: 'center',
     gap: 6,
     padding: 8,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    minWidth: 72,
+    borderColor: 'transparent',
+    minWidth: 80,
   },
-  stickerPreview: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#F3F4F6',
+  themeCardActive: {
+    borderColor: ACCENT,
+    backgroundColor: '#FFF7ED',
+  },
+  themePreview: {
+    width: 64,
+    height: 56,
+    backgroundColor: '#1A1A2E',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
+  },
+  themePreviewLight: {
+    backgroundColor: '#F3F4F6',
+  },
+  themePreviewNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  themePreviewLabel: {
+    fontSize: 10,
   },
   dimRow: {
     flexDirection: 'row',

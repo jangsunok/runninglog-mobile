@@ -13,7 +13,7 @@ import {
   useEffect,
   useMemo,
 } from 'react';
-import { StyleSheet, View, Text, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 import MapView, { Polyline, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { Coordinate } from '@/types/run';
 import { BrandOrange } from '@/constants/theme';
@@ -135,15 +135,6 @@ function ActiveRunMapViewInner(
     []
   );
 
-  if (Platform.OS === 'web') {
-    return (
-      <View style={[styles.placeholder, style]}>
-        <Text style={styles.placeholderText}>지도 (Development Build 필요)</Text>
-        <Text style={styles.placeholderSub}>구글맵은 iOS/Android 빌드에서 표시됩니다.</Text>
-      </View>
-    );
-  }
-
   return (
     <MapView
       ref={mapRef}
@@ -204,20 +195,4 @@ function ActiveRunMapViewInner(
 
 export const ActiveRunMapView = forwardRef(ActiveRunMapViewInner);
 
-const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    backgroundColor: '#1F2937',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-  },
-  placeholderSub: {
-    color: '#6B7280',
-    fontSize: 12,
-    marginTop: 4,
-  },
-});
+const styles = StyleSheet.create({});

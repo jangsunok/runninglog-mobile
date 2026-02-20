@@ -5,8 +5,8 @@ import ViewShot from 'react-native-view-shot';
 import { Calendar, MapPin } from 'lucide-react-native';
 
 import { RoutePathSvg } from './RoutePathSvg';
-import { TEMPLATES } from '@/constants/shareEditTemplates';
-import type { ShareEditState, ShareCardData, StickerItem } from '@/types/shareEdit';
+import { TEMPLATES, TEXT_THEMES, getThemeBlockColor } from '@/constants/shareEditTemplates';
+import type { ShareEditState, ShareCardData } from '@/types/shareEdit';
 import type { ApiCoordinate } from '@/types/activity';
 import type { Coordinate } from '@/types/run';
 import { F } from '@/constants/theme';
@@ -31,6 +31,11 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
       [state.templateId],
     );
 
+    const themeColors = useMemo(
+      () => TEXT_THEMES.find((t) => t.id === state.textTheme)?.colors ?? TEXT_THEMES[0].colors,
+      [state.textTheme],
+    );
+
     const renderBlock = (
       block: { top: number; left: number; fontSize: number; fontWeight?: string; textAlign?: string; color?: string },
       content: string,
@@ -39,6 +44,7 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
       if (!content) return null;
       const isCenter = block.textAlign === 'center';
       const isRight = block.textAlign === 'right';
+      const color = getThemeBlockColor(key, themeColors);
 
       return (
         <Text
@@ -54,7 +60,7 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
               fontSize: block.fontSize,
               fontWeight: (block.fontWeight as any) ?? '400',
               textAlign: (block.textAlign as any) ?? 'center',
-              color: block.color ?? '#FFFFFF',
+              color,
               fontFamily: F.inter400,
             },
           ]}
@@ -71,7 +77,7 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
         style={[s.canvas, { width: CANVAS_W, height: canvasH }]}
       >
         {/* Layer 1: Background */}
-        {state.backgroundType === 'color' && (
+        {state.backgroundType === 'color' && state.backgroundColor !== 'transparent' && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: state.backgroundColor }]} />
         )}
         {state.backgroundType === 'gallery' && state.backgroundUri && (
@@ -155,37 +161,6 @@ export const ShareEditCanvas = forwardRef<ViewShot, ShareEditCanvasProps>(
 
         {/* Logo watermark */}
         {renderBlock(template.blocks.logo, 'RunningLog', 'logo')}
-
-        {/* Layer 4: Stickers */}
-        {state.stickers.map((sticker) => (
-          <View
-            key={sticker.id}
-            style={[
-              s.stickerWrap,
-              {
-                position: 'absolute',
-                top: sticker.y * canvasH - 16,
-                left: sticker.x * CANVAS_W - 24,
-              },
-            ]}
-          >
-            {sticker.type === 'logo' && (
-              <View style={s.stickerBadge}>
-                <Text style={s.stickerBadgeText}>RunningLog</Text>
-              </View>
-            )}
-            {sticker.type === 'pb' && (
-              <View style={[s.stickerBadge, { backgroundColor: '#FFD700' }]}>
-                <Text style={[s.stickerBadgeText, { color: '#000' }]}>PB</Text>
-              </View>
-            )}
-            {sticker.type === 'complete_run' && (
-              <View style={[s.stickerBadge, { backgroundColor: '#4ADE80' }]}>
-                <Text style={[s.stickerBadgeText, { color: '#000' }]}>완런</Text>
-              </View>
-            )}
-          </View>
-        ))}
       </ViewShot>
     );
   },
@@ -216,19 +191,5 @@ const s = StyleSheet.create({
   routeText: {
     color: '#FFFFFFB3',
     fontSize: 12,
-  },
-  stickerWrap: {
-    zIndex: 100,
-  },
-  stickerBadge: {
-    backgroundColor: '#FF6F00',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  stickerBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
 });

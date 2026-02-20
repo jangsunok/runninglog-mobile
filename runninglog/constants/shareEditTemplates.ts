@@ -1,4 +1,4 @@
-import type { TemplateId } from '@/types/shareEdit';
+import type { TemplateId, TextTheme } from '@/types/shareEdit';
 
 export interface TemplateBlock {
   top: number;
@@ -92,11 +92,51 @@ export const TEMPLATES: TemplateLayout[] = [
 ];
 
 export const BACKGROUND_COLORS = [
+  { id: 'transparent', color: 'transparent', label: '투명' },
   { id: 'dark', color: '#1A1A2E', label: '컬러1' },
   { id: 'orange', color: '#FF6F00', label: '컬러2' },
   { id: 'navy', color: '#0D1B2A', label: '컬러3' },
   { id: 'forest', color: '#1B4332', label: '컬러4' },
 ] as const;
+
+export interface TextThemeColors {
+  primary: string;
+  secondary: string;
+  muted: string;
+  logo: string;
+}
+
+export const TEXT_THEMES: { id: TextTheme; label: string; colors: TextThemeColors }[] = [
+  {
+    id: 'default',
+    label: '기본 테마',
+    colors: { primary: '#FF6F00', secondary: '#FFFFFF', muted: '#FFFFFFB3', logo: '#FFFFFF80' },
+  },
+  {
+    id: 'white',
+    label: '화이트',
+    colors: { primary: '#FFFFFF', secondary: '#FFFFFF', muted: '#FFFFFFB3', logo: '#FFFFFF80' },
+  },
+  {
+    id: 'black',
+    label: '블랙',
+    colors: { primary: '#000000', secondary: '#000000', muted: '#000000B3', logo: '#00000080' },
+  },
+];
+
+export function getThemeBlockColor(
+  blockKey: string,
+  colors: TextThemeColors,
+): string {
+  switch (blockKey) {
+    case 'dist': return colors.primary;
+    case 'pace':
+    case 'time':
+    case 'hr': return colors.secondary;
+    case 'logo': return colors.logo;
+    default: return colors.muted;
+  }
+}
 
 export const DEFAULT_DATA_TOGGLES = {
   showDistance: true,
