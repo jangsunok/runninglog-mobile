@@ -13,7 +13,6 @@ export default function MyLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="logout" />
         <Stack.Screen name="withdraw" />
-        <Stack.Screen name="notifications" />
         <Stack.Screen name="data-source" />
         <Stack.Screen name="notification-settings" />
         <Stack.Screen name="theme-settings" />

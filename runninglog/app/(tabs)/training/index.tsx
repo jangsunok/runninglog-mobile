@@ -188,7 +188,7 @@ export default function TrainingScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>트레이닝</Text>
           <Pressable
-            onPress={() => router.push('/(tabs)/my/notifications')}
+            onPress={() => router.push('/notifications')}
             style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
             hitSlop={12}
           >

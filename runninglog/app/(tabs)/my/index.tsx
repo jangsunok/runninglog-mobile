@@ -63,7 +63,7 @@ export default function MyScreen() {
           <ThemedText style={[styles.headerTitle, { fontFamily: F.inter700 }]}>
             마이페이지
           </ThemedText>
-          <Pressable onPress={() => router.push('/(tabs)/my/notifications')}>
+          <Pressable onPress={() => router.push('/notifications')}>
             <View style={styles.bellWrapper}>
               <Bell size={24} color={c.textSecondary} />
               {unreadCount > 0 && <View style={styles.notificationDot} />}

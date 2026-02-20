@@ -336,7 +336,7 @@ export default function HomeScreen() {
             {displayDate}
           </Text>
           <Pressable
-            onPress={() => router.push('/(tabs)/my/notifications')}
+            onPress={() => router.push('/notifications')}
             style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
             hitSlop={12}
           >

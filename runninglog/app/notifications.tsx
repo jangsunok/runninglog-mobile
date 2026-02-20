@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, BellOff } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { useCallback, useEffect, useState } from 'react';
@@ -76,13 +77,16 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={BrandOrange} />
-      </ThemedView>
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
+        <ThemedView style={[styles.container, styles.center]}>
+          <ActivityIndicator size="large" color={BrandOrange} />
+        </ThemedView>
+      </SafeAreaView>
     );
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
     <ThemedView style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: 16 }]}>
@@ -178,6 +182,7 @@ export default function NotificationsScreen() {
         </ScrollView>
       )}
     </ThemedView>
+    </SafeAreaView>
   );
 }
 
