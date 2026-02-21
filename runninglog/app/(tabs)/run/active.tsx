@@ -411,45 +411,42 @@ export default function RunActiveScreen() {
         style={[styles.topGradient, { height: insets.top + 90 }]}
       />
 
-      {/* ── 헤더: 뒤로가기 + LIVE + GPS ────────────── */}
+      {/* ── 헤더: 뒤로가기 / LIVE+GPS / 설정(내위치) ── */}
       <View style={[styles.headerBar, { top: insets.top + 6 }]}>
+        {/* 좌: 뒤로가기 */}
         <Pressable
           onPress={() => router.back()}
           hitSlop={12}
-          style={styles.headerBack}
+          style={styles.headerCircleBtn}
         >
-          <MaterialIcons name="chevron-left" size={28} color="#FFFFFF" />
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <MaterialIcons name="arrow-back" size={22} color="#FFFFFF" />
         </Pressable>
 
-        <View style={styles.headerRight}>
-          <Pressable
-            onPress={handleMoveToCurrentLocation}
-            style={styles.blurBadge}
-          >
-            <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.locationButtonInner}>
-              <MaterialIcons name="my-location" size={18} color="#FFFFFF" />
-            </View>
-          </Pressable>
+        {/* 중앙: LIVE + GPS 배지 */}
+        <View style={styles.headerCenter}>
           {status === 'running' && (
-            <View style={styles.blurBadge}>
+            <View style={styles.pillBadge}>
               <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
               <View style={styles.liveBadgeInner}>
-                <View style={styles.liveDot} />
+                <View style={styles.liveDotOuter}>
+                  <View style={styles.liveDotPing} />
+                  <View style={styles.liveDot} />
+                </View>
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
             </View>
           )}
           <Pressable
             onPress={gpsEnabled === false ? () => openAppSettings() : undefined}
-            style={styles.blurBadge}
+            style={styles.pillBadge}
           >
             <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
             <View style={styles.gpsBadgeInner}>
               <MaterialIcons
-                name="gps-fixed"
+                name="satellite-alt"
                 size={14}
-                color={gpsEnabled === false ? '#9CA3AF' : '#00FF88'}
+                color={gpsEnabled === false ? '#9CA3AF' : BrandOrange}
               />
               <Text
                 style={[
@@ -457,11 +454,21 @@ export default function RunActiveScreen() {
                   gpsEnabled === false && styles.gpsTextDisabled,
                 ]}
               >
-                GPS
+                GPS {gpsEnabled !== false ? 'OK' : ''}
               </Text>
             </View>
           </Pressable>
         </View>
+
+        {/* 우: 설정(내위치) 버튼 */}
+        <Pressable
+          onPress={handleMoveToCurrentLocation}
+          hitSlop={12}
+          style={styles.headerCircleBtn}
+        >
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <MaterialIcons name="my-location" size={22} color="#FFFFFF" />
+        </Pressable>
       </View>
 
       {/* ── 스탯 오버레이 (블러 카드) ─────────────── */}
@@ -592,61 +599,80 @@ const styles = StyleSheet.create({
   /* 헤더 */
   headerBar: {
     position: 'absolute',
-    left: 12,
+    left: 16,
     right: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 5,
   },
-  headerBack: {
-    padding: 4,
+  headerCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerRight: {
+  headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
 
-  /* 블러 뱃지 (LIVE / GPS) */
-  blurBadge: {
-    borderRadius: 12,
+  /* 블러 필 배지 (LIVE / GPS) */
+  pillBadge: {
+    borderRadius: 18,
     overflow: 'hidden',
-  },
-  locationButtonInner: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 36,
   },
   liveBadgeInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    gap: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 14,
+    height: 36,
+  },
+  liveDotOuter: {
+    width: 8,
+    height: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveDotPing: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: HeartRed,
+    opacity: 0.5,
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: HeartRed,
   },
   liveText: {
-    color: HeartRed,
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
   gpsBadgeInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    gap: 6,
+    paddingVertical: 0,
+    paddingHorizontal: 14,
+    height: 36,
   },
   gpsText: {
-    color: '#00FF88',
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
   gpsTextDisabled: {
     color: '#9CA3AF',
