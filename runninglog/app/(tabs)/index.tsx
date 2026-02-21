@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Bell, Heart, Share2 } from 'lucide-react-native';
+import { Bell, Check, Heart, Share2 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,26 +24,46 @@ import { getActivities } from '@/lib/api/activities';
 import { useCoachingMessage } from '@/hooks/use-coaching-message';
 import type { ActivityListItem } from '@/types/activity';
 
-// ─── 주간 캘린더 생성 (일요일 시작) ──────────────────────────────────────────
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+// ─── 주간 캘린더 생성 (월요일 시작) ──────────────────────────────────────────
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
 function getWeekCalendar(runDays: Set<number>) {
   const today = new Date();
   const todayDate = today.getDate();
-  const dayOfWeek = today.getDay(); // 0=일요일, 1=월, ..., 6=토
-  const sundayOffset = -dayOfWeek; // 이번 주 일요일까지의 차이
+  const dayOfWeek = today.getDay(); // 0=일, 1=월, ..., 6=토
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // 이번 주 월요일
 
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
-    d.setDate(today.getDate() + sundayOffset + i);
+    d.setDate(today.getDate() + mondayOffset + i);
     const date = d.getDate();
+    const isFuture = d.getTime() > today.getTime() && date !== todayDate;
     return {
       label: WEEKDAY_LABELS[i],
       date,
       hasRun: runDays.has(date),
       isToday: date === todayDate && d.getMonth() === today.getMonth(),
+      isFuture,
     };
   });
+}
+
+/** 연속 달린 날 수 계산 (오늘 기준 역순) */
+function calcStreak(runDays: Set<number>): number {
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (runDays.has(d.getDate())) {
+      streak++;
+    } else {
+      // 오늘 아직 안 뛰었으면 어제부터 카운트
+      if (i === 0) continue;
+      break;
+    }
+  }
+  return streak;
 }
 
 function formatDurationHHMMSS(value?: string | null): string {
@@ -172,6 +192,7 @@ export default function HomeScreen() {
   }, [fetchData]);
 
   const weekDays = getWeekCalendar(runDays);
+  const streak = calcStreak(runDays);
 
   const startDistanceAnimation = useCallback((targetKm: number) => {
     const safeTarget = Number.isFinite(targetKm) ? targetKm : 0;
@@ -353,33 +374,33 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 주간 스트릭 캘린더 (기록 주간 뷰와 동일 디자인·간격, 배경 없음) */}
+        {/* 주간 스트릭 캘린더 (카드 스타일) */}
         <View style={styles.weekCalendar}>
-          <View style={styles.weekdayRow}>
-            {weekDays.map((day) => (
-              <View key={day.label} style={styles.weekdayCell}>
-                <Text style={[styles.weekdayText, { color: theme.textTertiary }]}>
-                  {day.label}
-                </Text>
-              </View>
-            ))}
+          <View style={styles.streakHeaderRow}>
+            <Text style={[styles.streakLabel, { color: theme.textSecondary }]}>WEEKLY STREAK</Text>
+            {streak > 0 && (
+              <Text style={styles.streakCount}>{streak}일 연속 달성 중</Text>
+            )}
           </View>
-          <View style={styles.weekRow}>
-            {weekDays.map((day, index) => (
-              <WeekDayCell
-                key={`${day.label}-${day.date}`}
-                day={day}
-                index={index}
-                theme={theme}
-                weekCalendarProgress={weekCalendarProgress}
-                todayBadgeScale={todayBadgeScale}
-              />
-            ))}
+          <View style={[styles.weekCard, { backgroundColor: theme.surface }]}>
+            <View style={styles.weekRow}>
+              {weekDays.map((day, index) => (
+                <WeekDayCell
+                  key={`${day.label}-${day.date}`}
+                  day={day}
+                  index={index}
+                  theme={theme}
+                  weekCalendarProgress={weekCalendarProgress}
+                  todayBadgeScale={todayBadgeScale}
+                />
+              ))}
+            </View>
           </View>
         </View>
 
-        {/* 기록 영역 + 공유 버튼 (가장 최신 기록 기준) */}
-        <View style={styles.recordContainer}>
+        {/* 기록 카드 (가장 최신 기록 기준) */}
+        <View style={[styles.recordCard, { backgroundColor: theme.surface }]}>
+          {/* 공유 버튼 */}
           <Pressable
             onPress={handleShare}
             style={({ pressed }) => [
@@ -390,41 +411,51 @@ export default function HomeScreen() {
           >
             <Share2
               size={18}
-              color={colorScheme === 'dark' ? '#FFFFFF' : theme.icon}
+              color={theme.textSecondary}
               strokeWidth={2}
             />
           </Pressable>
+
+          {/* LATEST ACTIVITY 라벨 */}
+          <Text style={styles.latestLabel}>LATEST ACTIVITY</Text>
 
           {/* 거리 표시 */}
           <View style={styles.distanceSection}>
             <Text style={styles.distanceValue}>
               {displayDistance.toFixed(2)}
             </Text>
-            <Text style={[styles.distanceUnit, { color: theme.text }]}>KM</Text>
+            <Text style={[styles.distanceUnit, { color: theme.textSecondary }]}>KM</Text>
           </View>
 
-          {/* 타이머 표시 */}
-          <Text style={[styles.timerText, { color: theme.text }]}>
-            {formatSecondsToHHMMSS(displayDurationSeconds)}
-          </Text>
-
-          {/* 현재 페이스 & 심박수 */}
-          <View style={styles.statsRow}>
+          {/* 3열 스탯 (구분선 포함) */}
+          <View style={[styles.statsRow, { borderTopColor: theme.border }]}>
             <View style={styles.statItem}>
+              <View style={styles.statLabelRow}>
+                <MaterialIcons name="schedule" size={14} color={theme.textTertiary} />
+                <Text style={[styles.statLabelText, { color: theme.textTertiary }]}>TIME</Text>
+              </View>
               <Text style={[styles.statValue, { color: theme.text }]}>
-                {(latestActivity?.average_pace_display?.trim() || "00'00\"")}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                평균 페이스
+                {formatSecondsToHHMMSS(displayDurationSeconds)}
               </Text>
             </View>
+            <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
             <View style={styles.statItem}>
-              <View style={styles.heartRateRow}>
-                <Heart size={22} color={HeartRed} fill={HeartRed} strokeWidth={2} />
-                <Text style={[styles.statValue, { color: theme.text }]}>-</Text>
+              <View style={styles.statLabelRow}>
+                <MaterialIcons name="speed" size={14} color={theme.textTertiary} />
+                <Text style={[styles.statLabelText, { color: theme.textTertiary }]}>PACE</Text>
               </View>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                심박수 bpm
+              <Text style={[styles.statValue, { color: theme.text }]}>
+                {(latestActivity?.average_pace_display?.trim() || "0'00\"")}
+              </Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+            <View style={styles.statItem}>
+              <View style={styles.statLabelRow}>
+                <Heart size={14} color={HeartRed} fill={HeartRed} />
+                <Text style={[styles.statLabelText, { color: theme.textTertiary }]}>AVG HR</Text>
+              </View>
+              <Text style={[styles.statValue, { color: theme.text }]}>
+                -- BPM
               </Text>
             </View>
           </View>
@@ -476,6 +507,7 @@ type WeekDayCellProps = {
     date: number;
     hasRun: boolean;
     isToday: boolean;
+    isFuture: boolean;
   };
   index: number;
   theme: any;
@@ -492,51 +524,58 @@ function WeekDayCell({
 }: WeekDayCellProps) {
   const hasRun = day.hasRun;
   const todayFlag = day.isToday;
+  const isDark = theme.background === '#0D0D0D';
+
+  // 과거 달린 날 (오늘 제외): 체크 아이콘
+  const isPastRun = hasRun && !todayFlag;
 
   const runDayAnimatedStyle = useAnimatedStyle(() => {
-    if (!hasRun) {
-      return {};
-    }
-
+    if (!hasRun) return {};
     const progress = weekCalendarProgress.value;
-    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-
-    return {
-      backgroundColor: eased < 0.5 ? theme.lightGray : BrandOrange,
-    };
+    const eased = 1 - Math.pow(1 - progress, 3);
+    if (todayFlag) {
+      return { backgroundColor: eased < 0.5 ? (isDark ? '#333' : '#E5E5E5') : BrandOrange };
+    }
+    // 과거 달린 날: 오렌지 20% 배경
+    return { backgroundColor: eased < 0.5 ? (isDark ? '#333' : '#E5E5E5') : (isDark ? 'rgba(255,110,0,0.2)' : 'rgba(255,110,0,0.15)') };
   });
 
   const todayAnimatedStyle = useAnimatedStyle(() => {
-    if (!(todayFlag && hasRun)) {
-      return {};
-    }
-
-    return {
-      transform: [{ scale: todayBadgeScale.value }],
-    };
+    if (!(todayFlag && hasRun)) return {};
+    return { transform: [{ scale: todayBadgeScale.value }] };
   });
+
+  const labelColor = todayFlag ? BrandOrange : theme.textTertiary;
 
   return (
     <View style={styles.dayCell}>
+      {/* 요일 라벨 */}
+      <Text style={[styles.weekdayText, { color: labelColor }]}>{day.label}</Text>
+      {/* 날짜 배지 */}
       <Animated.View
         style={[
           styles.dayBadge,
-          !hasRun && !todayFlag && [styles.dayBadgeEmpty, { backgroundColor: theme.lightGray }],
+          !hasRun && !todayFlag && { borderWidth: 1, borderColor: isDark ? '#404040' : '#E5E5E5' },
           todayFlag && !hasRun && styles.dayBadgeToday,
+          todayFlag && hasRun && styles.dayBadgeTodayRun,
           runDayAnimatedStyle,
           todayAnimatedStyle,
         ]}
       >
-        <Text
-          style={[
-            styles.dayText,
-            { color: theme.text },
-            hasRun && styles.dayTextRun,
-            todayFlag && !hasRun && styles.dayTextToday,
-          ]}
-        >
-          {day.date}
-        </Text>
+        {isPastRun ? (
+          <Check size={16} color={BrandOrange} strokeWidth={3} />
+        ) : (
+          <Text
+            style={[
+              styles.dayText,
+              { color: theme.text },
+              todayFlag && hasRun && styles.dayTextRun,
+              todayFlag && !hasRun && styles.dayTextToday,
+            ]}
+          >
+            {day.date}
+          </Text>
+        )}
       </Animated.View>
     </View>
   );
@@ -576,21 +615,39 @@ const styles = StyleSheet.create({
     fontFamily: F.inter700,
   },
 
-  /* 주간 스트릭 캘린더 (기록 주간 뷰와 동일 간격, 배경 없음) */
+  /* 주간 스트릭 캘린더 */
   weekCalendar: {
-    marginBottom: 32,
+    marginBottom: 28,
+    paddingHorizontal: 4,
   },
-  weekdayRow: {
+  streakHeaderRow: {
     flexDirection: 'row',
-    marginBottom: 4,
-  },
-  weekdayCell: {
-    flex: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  streakLabel: {
+    fontSize: 11,
+    fontFamily: F.inter700,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  streakCount: {
+    fontSize: 12,
+    fontFamily: F.inter600,
+    color: BrandOrange,
+  },
+  weekCard: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
   },
   weekdayText: {
-    fontSize: 12,
-    fontFamily: F.inter400,
+    fontSize: 10,
+    fontFamily: F.inter700,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   weekRow: {
     flexDirection: 'row',
@@ -599,28 +656,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
   },
   dayBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  dayBadgeRun: {
-    backgroundColor: BrandOrange,
-  },
-  dayBadgeEmpty: {
-    backgroundColor: undefined,
   },
   dayBadgeToday: {
     borderWidth: 2,
     borderColor: BrandOrange,
   },
+  dayBadgeTodayRun: {
+    shadowColor: BrandOrange,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   dayText: {
-    fontSize: 15,
-    fontFamily: F.inter500,
+    fontSize: 14,
+    fontFamily: F.inter600,
   },
   dayTextRun: {
     color: '#FFFFFF',
@@ -631,77 +688,84 @@ const styles = StyleSheet.create({
     fontFamily: F.inter700,
   },
 
-  /* 기록 영역 래퍼 (공유 버튼 오버레이) */
-  recordContainer: {
+  /* 기록 카드 */
+  recordCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 4,
+    marginBottom: 16,
     position: 'relative',
-    marginBottom: 12,
+    overflow: 'hidden',
   },
   shareButton: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   shareButtonPressed: {
-    opacity: 0.8,
+    opacity: 0.7,
     transform: [{ scale: 0.95 }],
+  },
+  latestLabel: {
+    fontSize: 11,
+    fontFamily: F.inter700,
+    color: BrandOrange,
+    letterSpacing: 1.5,
+    marginBottom: 12,
   },
 
   /* 거리 표시 */
   distanceSection: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
   },
   distanceValue: {
-    fontSize: 72,
+    fontSize: 56,
     fontFamily: F.mont800,
     color: BrandOrange,
     letterSpacing: -2,
   },
   distanceUnit: {
-    fontSize: 24,
-    fontFamily: F.inter500,
-    marginLeft: 8,
+    fontSize: 20,
+    fontFamily: F.inter600,
+    marginLeft: 6,
   },
 
-  /* 타이머 */
-  timerText: {
-    fontSize: 48,
-    fontFamily: F.mont700,
-    textAlign: 'center',
-    marginBottom: 20,
-    letterSpacing: -1,
-  },
-
-  /* 페이스 & 심박수 */
+  /* 3열 스탯 */
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 48,
-    marginBottom: 28,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 16,
   },
   statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 28,
-    fontFamily: F.mont700,
-  },
-  heartRateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
     gap: 6,
   },
-  statLabel: {
-    fontSize: 13,
-    marginTop: 4,
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statLabelText: {
+    fontSize: 10,
+    fontFamily: F.inter600,
+    letterSpacing: 0.5,
+  },
+  statValue: {
+    fontSize: 18,
+    fontFamily: F.inter700,
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginHorizontal: 12,
   },
 
   /* AI 페이스메이커 카드 */

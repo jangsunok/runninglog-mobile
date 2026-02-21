@@ -103,8 +103,9 @@ function formatDurationHHMMSS(value?: string | null): string {
   return raw;
 }
 
-// 일요일 시작
+// 일요일 시작 (월간), 월요일 시작 (주간)
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAY_LABELS_MON = ['월', '화', '수', '목', '금', '토', '일'];
 const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
 /** 기록 이동 가능 범위: 2025-01-01 ~ 오늘(미래 불가) */
@@ -210,6 +211,7 @@ export default function CalendarScreen() {
   const [periodSummary, setPeriodSummary] = useState<StatisticsPeriodItem | null>(null);
   const [activities, setActivities] = useState<ActivityListItem[]>([]);
   const [runDates, setRunDates] = useState<Record<string, number[]>>({});
+  const [monthlyStatsArr, setMonthlyStatsArr] = useState<StatisticsPeriodItem[]>([]);
   const [periodLoading, setPeriodLoading] = useState(true);
 
   const isViewingCurrentMonth =
@@ -226,7 +228,7 @@ export default function CalendarScreen() {
     setPeriodLoading(true);
     (async () => {
       try {
-        const [periodStats, dailyStats, actData] = await Promise.all([
+        const [periodStats, dailyStats, actData, monthlyData] = await Promise.all([
           viewMode === 'weekly'
             ? getStatisticsWeekly(currentYear)
             : viewMode === 'monthly'
@@ -234,6 +236,7 @@ export default function CalendarScreen() {
               : getStatisticsYearly(),
           getStatisticsDaily(periodFrom, periodTo),
           getActivities({ from: periodFrom, to: periodTo, page: 1, page_size: 100 }),
+          viewMode === 'yearly' ? getStatisticsMonthly(currentYear) : Promise.resolve([] as StatisticsPeriodItem[]),
         ]);
         if (cancelled) return;
         const matched =
@@ -244,6 +247,7 @@ export default function CalendarScreen() {
               : findYearlyPeriod(periodStats, currentYear);
         setPeriodSummary(matched ?? null);
         setRunDates(runDatesFromDaily(dailyStats));
+        setMonthlyStatsArr(monthlyData);
         setActivities(actData.results);
       } catch {
         if (!cancelled) Toast.show({ type: 'error', text1: '기록을 불러오지 못했어요.' });
@@ -324,10 +328,10 @@ export default function CalendarScreen() {
     };
   }, [weekSunday, currentYear, currentMonth, todayYear, todayMonth, minWeekSunday, now]);
 
-  // 주간 뷰 데이터
+  // 주간 뷰 데이터 (월-일 순)
   const weekDays = useMemo(() => {
     const days: { day: number; month: number; year: number }[] = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 1; i <= 7; i++) {
       const d = new Date(weekSunday);
       d.setDate(d.getDate() + i);
       days.push({ day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() });
@@ -604,101 +608,78 @@ export default function CalendarScreen() {
   };
 
   // ─────────────────────────────────────────
-  // 주간 뷰
+  // 주간 뷰 (월-일 스트립, 원형 뱃지)
   // ─────────────────────────────────────────
   const renderWeeklyView = () => (
-    <View>
-      {renderWeekdayHeader()}
-      <View style={styles.weekRow}>
-        {weekDays.map((wd, i) => {
-          const hasRun = isRunDayCheck(runDates,wd.year, wd.month, wd.day);
-          const todayFlag = isToday(wd.year, wd.month, wd.day);
-          return (
-            <View key={i} style={styles.dayCell}>
-              <View
-                style={[
-                  styles.dayBadge,
-                  hasRun && styles.dayBadgeRun,
-                  !hasRun && !todayFlag && [styles.dayBadgeEmpty, themeStyles.dayBadgeEmpty],
-                  todayFlag && !hasRun && styles.dayBadgeToday,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    themeStyles.dayTextCurrent,
-                    hasRun && styles.dayTextRun,
-                    todayFlag && !hasRun && styles.dayTextToday,
-                  ]}
-                >
-                  {wd.day}
-                </Text>
-              </View>
+    <View style={styles.weekStrip}>
+      {weekDays.map((wd, i) => {
+        const hasRun = isRunDayCheck(runDates, wd.year, wd.month, wd.day);
+        const todayFlag = isToday(wd.year, wd.month, wd.day);
+        const isSun = i === 6;
+        const isSat = i === 5;
+        return (
+          <View key={i} style={styles.weekStripCell}>
+            <Text style={[
+              styles.weekStripLabel,
+              { color: isSun ? '#EF4444' : isSat ? `${BrandOrange}B3` : theme.textTertiary },
+            ]}>
+              {WEEKDAY_LABELS_MON[i]}
+            </Text>
+            <View style={[
+              styles.weekStripBadge,
+              hasRun && styles.weekStripBadgeRun,
+              todayFlag && !hasRun && styles.weekStripBadgeToday,
+            ]}>
+              <Text style={[
+                styles.weekStripDayText,
+                { color: hasRun ? '#FFFFFF' : todayFlag ? BrandOrange : theme.text },
+                (hasRun || todayFlag) && { fontFamily: F.inter700 },
+              ]}>
+                {wd.day}
+              </Text>
             </View>
-          );
-        })}
-      </View>
+          </View>
+        );
+      })}
     </View>
   );
 
   // ─────────────────────────────────────────
-  // 월간 뷰
+  // 월간 뷰 (surface 카드 + 원형 뱃지)
   // ─────────────────────────────────────────
   const renderMonthlyView = () => (
-    <View>
-      {renderWeekdayHeader()}
+    <View style={[styles.monthCalCard, { backgroundColor: theme.surface, borderColor: isDark ? 'rgba(255,255,255,0.05)' : theme.border }]}>
+      {/* 요일 헤더 */}
+      <View style={styles.weekdayRow}>
+        {WEEKDAY_LABELS.map((label, i) => (
+          <View key={label} style={styles.weekdayCell}>
+            <Text style={[styles.weekdayText, { color: i === 0 ? 'rgba(239,68,68,0.8)' : theme.textTertiary }]}>
+              {label}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {/* 날짜 그리드 */}
       {monthGrid.map((row, rowIndex) => (
         <View key={rowIndex} style={styles.weekRow}>
-          {row.map((cell, colIndex) =>
-            renderDayCell(cell.day, cell.isCurrentMonth, rowIndex, colIndex)
-          )}
-        </View>
-      ))}
-    </View>
-  );
-
-  // ─────────────────────────────────────────
-  // 연간 뷰: 미니 캘린더 그리드
-  // ─────────────────────────────────────────
-  const renderYearlyView = () => (
-    <View style={yrS.container}>
-      {[0, 1, 2, 3, 4, 5].map((rowIdx) => (
-        <View key={rowIdx} style={yrS.monthRow}>
-          {[0, 1].map((colIdx) => {
-            const grid = yearGrids[rowIdx * 2 + colIdx];
+          {row.map((cell, colIndex) => {
+            const hasRun = cell.isCurrentMonth && isRunDayCheck(runDates, currentYear, currentMonth, cell.day);
+            const todayFlag = cell.isCurrentMonth && isToday(currentYear, currentMonth, cell.day);
             return (
-              <View key={colIdx} style={[yrS.monthCard, { borderColor: theme.border }]}>
-                <Text style={[yrS.monthTitle, { color: theme.text }]}>{MONTH_NAMES[grid.month - 1]}</Text>
-                <View style={yrS.miniGrid}>
-                  {grid.weeks.map((week, wi) => (
-                    <View key={wi} style={yrS.miniWeekRow}>
-                      {week.map((day, di) => {
-                        if (day === null) {
-                          return <View key={di} style={yrS.miniDayEmpty} />;
-                        }
-                        const hasRun = isRunDayCheck(runDates,currentYear, grid.month, day);
-                        return (
-                          <View
-                            key={di}
-                            style={[
-                              yrS.miniDay,
-                              { backgroundColor: hasRun ? BrandOrange : theme.surface },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                yrS.miniDayText,
-                                { color: hasRun ? '#FFFFFF' : theme.text },
-                              ]}
-                            >
-                              {day}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  ))}
-                </View>
+              <View key={`${rowIndex}-${colIndex}`} style={styles.monthDayCell}>
+                {hasRun ? (
+                  <View style={styles.monthDayBadgeRun}>
+                    <Text style={styles.monthDayTextRun}>{cell.day}</Text>
+                  </View>
+                ) : todayFlag ? (
+                  <View style={styles.monthDayBadgeToday}>
+                    <Text style={styles.monthDayTextToday}>{cell.day}</Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.monthDayText, { color: cell.isCurrentMonth ? theme.textSecondary : theme.textTertiary }]}>
+                    {cell.day}
+                  </Text>
+                )}
               </View>
             );
           })}
@@ -708,47 +689,98 @@ export default function CalendarScreen() {
   );
 
   // ─────────────────────────────────────────
-  // 전체 기록 섹션 (pen 디자인: 통합 카드)
+  // 연간 뷰: 월별 막대 차트
   // ─────────────────────────────────────────
+  const yearlyBarData = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      const stat = findMonthlyPeriod(monthlyStatsArr, currentYear, month);
+      return { month, distance: stat?.total_distance_km ?? 0 };
+    });
+  }, [monthlyStatsArr, currentYear]);
+
+  const renderYearlyView = () => {
+    const maxDist = Math.max(...yearlyBarData.map((b) => b.distance), 1);
+    return (
+      <View style={[yrS.chartCard, { backgroundColor: theme.surface, borderColor: isDark ? 'rgba(255,255,255,0.05)' : theme.border }]}>
+        <Text style={[yrS.chartTitle, { color: theme.textTertiary }]}>월별 활동량</Text>
+        <View style={yrS.chartBarContainer}>
+          {yearlyBarData.map((bar) => {
+            const isMax = bar.distance === maxDist && bar.distance > 0;
+            const barHeight = Math.max((bar.distance / maxDist) * 140, bar.distance > 0 ? 6 : 2);
+            return (
+              <View key={bar.month} style={yrS.chartBarCol}>
+                <View
+                  style={[
+                    yrS.chartBar,
+                    {
+                      height: barHeight,
+                      backgroundColor: isMax ? BrandOrange : `${BrandOrange}60`,
+                    },
+                    isMax && {
+                      shadowColor: BrandOrange,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 10,
+                    },
+                  ]}
+                />
+                <Text style={[
+                  yrS.chartBarLabel,
+                  { color: isMax ? BrandOrange : theme.textTertiary },
+                  isMax && { fontFamily: F.inter700 },
+                ]}>
+                  {bar.month}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+  // ─────────────────────────────────────────
+  // 전체 기록 섹션 (통합 카드)
+  // ─────────────────────────────────────────
+  const summaryLabel = viewMode === 'weekly' ? '이번 주 총 거리' : viewMode === 'monthly' ? '이번 달 총 거리' : `${currentYear}년 총 거리`;
+
   const renderSummarySection = () => (
     <View style={styles.summarySection}>
-      <View style={styles.summaryHeader}>
-        <Text style={[styles.summaryLabel, themeStyles.summaryLabel]}>전체 기록</Text>
-        <TouchableOpacity
-          style={[styles.analyzeButton, themeStyles.summaryAnalyzeButton]}
-          onPress={() => router.push('/analyze')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="bar-chart-outline" size={16} color={theme.textSecondary} />
-          <Text style={[styles.analyzeBtnText, themeStyles.summaryAnalyzeBtnText]}>분석보기</Text>
-        </TouchableOpacity>
-      </View>
+      <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: isDark ? 'rgba(255,255,255,0.05)' : theme.border }]}>
+        {/* 상단: 라벨 + 거리 */}
+        <Text style={[styles.summaryCardLabel, { color: theme.textTertiary }]}>{summaryLabel}</Text>
+        <View style={styles.summaryDistRow}>
+          <Text style={styles.summaryDistNumber}>
+            {periodSummary ? periodSummary.total_distance_km.toFixed(1) : '0'}
+          </Text>
+          <Text style={[styles.summaryDistUnit, { color: theme.text }]}>km</Text>
+        </View>
 
-      <View style={styles.bigDistanceRow}>
-        <Text style={[styles.bigDistanceLabel, themeStyles.bigDistanceLabel]}>누적 거리</Text>
-        <Text style={styles.bigDistanceNumber}>
-          {periodSummary ? periodSummary.total_distance_km.toFixed(2) : '0'}
-        </Text>
-        <Text style={[styles.bigDistanceUnit, themeStyles.bigDistanceUnit]}>km</Text>
-      </View>
+        {/* 구분선 */}
+        <View style={[styles.summaryDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : theme.border }]} />
 
-      <View style={[styles.statsCard, themeStyles.statsCard]}>
-        <View style={styles.statsInnerRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>{periodSummary?.total_activities ?? 0}</Text>
-            <Text style={[styles.statLabel, themeStyles.statLabel]}>횟수</Text>
+        {/* 하단: 3열 통계 */}
+        <View style={styles.summaryStatsRow}>
+          <View style={styles.summaryStatItem}>
+            <Text style={[styles.summaryStatLabel, { color: theme.textTertiary }]}>러닝 횟수</Text>
+            <Text style={[styles.summaryStatValue, { color: theme.text }]}>
+              {periodSummary?.total_activities ?? 0}회
+            </Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>
+          <View style={[styles.summaryStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : theme.border }]} />
+          <View style={styles.summaryStatItem}>
+            <Text style={[styles.summaryStatLabel, { color: theme.textTertiary }]}>총 시간</Text>
+            <Text style={[styles.summaryStatValue, { color: theme.text }]}>
               {formatDurationHHMMSS(periodSummary?.total_duration)}
             </Text>
-            <Text style={[styles.statLabel, themeStyles.statLabel]}>누적 시간</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, themeStyles.statValue]}>
-              {periodSummary?.average_pace_display?.trim() || "00'00\""}
+          <View style={[styles.summaryStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : theme.border }]} />
+          <View style={styles.summaryStatItem}>
+            <Text style={[styles.summaryStatLabel, { color: theme.textTertiary }]}>평균 페이스</Text>
+            <Text style={[styles.summaryStatValue, { color: theme.text }]}>
+              {periodSummary?.average_pace_display?.trim() || "0'00\""}
             </Text>
-            <Text style={[styles.statLabel, themeStyles.statLabel]}>평균 페이스</Text>
           </View>
         </View>
       </View>
@@ -763,7 +795,17 @@ export default function CalendarScreen() {
 
   const renderDetailRecords = () => (
     <View style={styles.detailSection}>
-      <Text style={[styles.detailTitle, themeStyles.detailTitle]}>{detailTitle}</Text>
+      <View style={styles.detailHeader}>
+        <Text style={[styles.detailTitle, themeStyles.detailTitle]}>{detailTitle}</Text>
+        <TouchableOpacity
+          style={[styles.analyzeButton, { backgroundColor: isDark ? theme.surface : '#F9FAFB', borderColor: theme.border }]}
+          onPress={() => router.push('/analyze')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="bar-chart-outline" size={16} color={theme.textSecondary} />
+          <Text style={[styles.analyzeBtnText, { color: theme.textSecondary }]}>분석보기</Text>
+        </TouchableOpacity>
+      </View>
       {detailActivities.length === 0 && (
         <Text style={[styles.recordDate, themeStyles.recordDate, { paddingVertical: 16, textAlign: 'center' }]}>
           {detailEmptyMessage}
@@ -817,7 +859,10 @@ export default function CalendarScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. 캘린더 카드 */}
+        {/* 전체 기록 요약 (최상단) */}
+        {renderSummarySection()}
+
+        {/* 캘린더 */}
         <View style={[styles.calendarCard, themeStyles.calendarCard]}>
           {renderSegmentControl()}
           {renderNavigation()}
@@ -825,9 +870,6 @@ export default function CalendarScreen() {
           {viewMode === 'monthly' && renderMonthlyView()}
           {viewMode === 'yearly' && renderYearlyView()}
         </View>
-
-        {/* 전체 기록 요약 */}
-        {renderSummarySection()}
 
         {/* 상세 기록 */}
         {renderDetailRecords()}
@@ -891,54 +933,38 @@ const wkS = StyleSheet.create({
 });
 
 // ═════════════════════════════════════════════
-// 연간 뷰 스타일 (pen: miniCalendar)
+// 연간 뷰 스타일 (월별 바 차트)
 // ═════════════════════════════════════════════
 const yrS = StyleSheet.create({
-  container: {
-    gap: 12,
-  },
-  monthRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  monthCard: {
-    flex: 1,
-    borderRadius: 12,
+  chartCard: {
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: COLOR_SURFACE_SUBTLE,
-    padding: 8,
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontFamily: F.inter700,
+    marginBottom: 16,
+  },
+  chartBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 160,
     gap: 4,
   },
-  monthTitle: {
-    fontSize: 12,
-    fontFamily: F.inter600,
-    color: C.text,
-  },
-  miniGrid: {
-    gap: 2,
-  },
-  miniWeekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    height: 14,
-  },
-  miniDay: {
-    width: 18,
-    height: 12,
-    borderRadius: 2,
+  chartBarCol: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
   },
-  miniDayEmpty: {
-    width: 18,
-    height: 12,
+  chartBar: {
+    width: '100%',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
   },
-  miniDayText: {
-    fontSize: 8,
-    color: C.text,
-  },
-  miniDayTextRun: {
-    color: '#FFFFFF',
+  chartBarLabel: {
+    fontSize: 10,
+    fontFamily: F.inter500,
   },
 });
 
@@ -1047,7 +1073,91 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 
-  // ─── 날짜 셀 (pen: rounded square) ───
+  // ─── 주간 스트립 (월-일, 원형) ───
+  weekStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekStripCell: {
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  weekStripLabel: {
+    fontSize: 10,
+    fontFamily: F.inter700,
+    textTransform: 'uppercase',
+  },
+  weekStripBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekStripBadgeRun: {
+    backgroundColor: BrandOrange,
+    shadowColor: BrandOrange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  weekStripBadgeToday: {
+    borderWidth: 2,
+    borderColor: BrandOrange,
+  },
+  weekStripDayText: {
+    fontSize: 14,
+    fontFamily: F.inter500,
+  },
+
+  // ─── 월간 캘린더 카드 ───
+  monthCalCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  monthDayCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 40,
+  },
+  monthDayBadgeRun: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: BrandOrange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthDayTextRun: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: F.inter700,
+  },
+  monthDayBadgeToday: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: BrandOrange,
+    backgroundColor: `${BrandOrange}15`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthDayTextToday: {
+    color: BrandOrange,
+    fontSize: 14,
+    fontFamily: F.inter700,
+  },
+  monthDayText: {
+    fontSize: 14,
+    fontFamily: F.inter400,
+  },
+
+  // ─── 기존 날짜 셀 (호환) ───
   dayCell: {
     flex: 1,
     alignItems: 'center',
@@ -1057,7 +1167,7 @@ const styles = StyleSheet.create({
   dayBadge: {
     width: 42,
     height: 42,
-    borderRadius: 12,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1206,18 +1316,76 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
 
-  // ─── 전체 기록 요약 ───
+  // ─── 전체 기록 카드 ───
   summarySection: {
     paddingHorizontal: 20,
     marginTop: 24,
   },
-  summaryHeader: {
+  summaryCard: {
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+  },
+  summaryCardLabel: {
+    fontSize: 14,
+    fontFamily: F.inter500,
+    marginBottom: 4,
+  },
+  summaryDistRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  summaryDistNumber: {
+    fontSize: 48,
+    fontFamily: F.mont800,
+    color: BrandOrange,
+    letterSpacing: -2,
+  },
+  summaryDistUnit: {
+    fontSize: 20,
+    fontFamily: F.inter700,
+  },
+  summaryDivider: {
+    height: 1,
+    marginVertical: 20,
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryStatLabel: {
+    fontSize: 10,
+    fontFamily: F.inter500,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  summaryStatValue: {
+    fontSize: 17,
+    fontFamily: F.inter700,
+  },
+  summaryStatDivider: {
+    width: 1,
+    height: 36,
+  },
+
+  // ─── 4. 상세 기록 ───
+  detailSection: {
+    paddingHorizontal: 20,
+    marginTop: 28,
+  },
+  detailHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  summaryLabel: {
+  detailTitle: {
     fontSize: 18,
     fontFamily: F.inter600,
     color: C.text,
@@ -1226,10 +1394,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingVertical: 6,
     paddingHorizontal: 12,
     height: 32,
@@ -1237,67 +1403,6 @@ const styles = StyleSheet.create({
   analyzeBtnText: {
     fontSize: 14,
     fontFamily: F.inter500,
-    color: '#374151',
-  },
-
-  // ─── 누적 거리 ───
-  bigDistanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  bigDistanceLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: C.textSecondary,
-  },
-  bigDistanceNumber: {
-    fontSize: 30,
-    fontFamily: F.mont800,
-    color: BrandOrange,
-  },
-  bigDistanceUnit: {
-    fontSize: 24,
-    fontWeight: '500',
-    color: C.text,
-  },
-
-  // ─── 통계 통합 카드 ───
-  statsCard: {
-    backgroundColor: C.lightGray,
-    borderRadius: 16,
-    padding: 16,
-  },
-  statsInnerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 24,
-    fontFamily: F.mont700,
-    color: C.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: C.textSecondary,
-  },
-
-  // ─── 4. 상세 기록 ───
-  detailSection: {
-    paddingHorizontal: 20,
-    marginTop: 28,
-  },
-  detailTitle: {
-    fontSize: 18,
-    fontFamily: F.inter600,
-    color: C.text,
-    marginBottom: 8,
   },
   recordItem: {
     paddingVertical: 14,
