@@ -1,6 +1,6 @@
 'use client';
 
-import { setAuthToken } from '@/lib/api/client';
+import { setAuthToken, setAuthCallbacks } from '@/lib/api/client';
 import { logoutApi, refreshTokens } from '@/lib/api/auth';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -111,6 +111,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // API 클라이언트에 토큰 갱신/실패 콜백 등록
+    setAuthCallbacks(
+      async () => {
+        const refresh = await getStoredRefreshToken();
+        if (!refresh) return null;
+        try {
+          const refreshed = await refreshTokens(refresh);
+          await setStoredTokens(refreshed.access_token, refreshed.refresh_token);
+          setAuthToken(refreshed.access_token);
+          return refreshed.access_token;
+        } catch {
+          return null;
+        }
+      },
+      () => {
+        // 갱신 실패 시 강제 로그아웃
+        removeStoredTokens();
+        setAuthToken(null);
+        setIsLoggedIn(false);
+      },
+    );
     checkAuth();
   }, [checkAuth]);
 

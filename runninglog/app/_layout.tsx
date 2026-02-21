@@ -65,13 +65,9 @@ function RootLayoutNav() {
 
   const [splashTimedOut, setSplashTimedOut] = useState(false);
 
-  // 네이티브 스플래시는 마운트 직후 바로 숨김 (Auth/폰트 대기하지 않음).
-  // USB 제거 시 JS는 돌아가도 isReady/폰트가 안 오는 경우 대비.
+  // 네이티브 스플래시는 JS 스플래시가 마운트된 후에 숨김 (빈 화면 방지)
   useEffect(() => {
-    const t = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {});
-    }, 100);
-    return () => clearTimeout(t);
+    SplashScreen.hideAsync().catch(() => {});
   }, []);
 
   // 앱 진입: Auth+폰트 준비되면 바로, 안 되면 3초 후 강제 진입

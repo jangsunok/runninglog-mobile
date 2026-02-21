@@ -394,7 +394,7 @@ export default function RunActiveScreen() {
       : { top: 0, bottom: 0, left: 0, right: 0 };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* ── 전체 화면 지도 ─────────────────────────── */}
       <ActiveRunMapView
         ref={mapRef}
