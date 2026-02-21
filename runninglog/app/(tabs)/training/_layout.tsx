@@ -11,6 +11,7 @@ export default function TrainingLayout() {
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="history" />
       </Stack>
     </SafeAreaView>
   );
