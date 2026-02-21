@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   StyleSheet,
@@ -7,10 +7,11 @@ import {
   View,
   Pressable,
   Dimensions,
+  Linking,
   StatusBar,
   Text,
 } from 'react-native';
-import { ChevronLeft, ChevronDown, Share2, Heart } from 'lucide-react-native';
+import { ChevronLeft, ChevronDown, Download, Share2, Heart } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient as ExpoGradient } from 'expo-linear-gradient';
@@ -709,6 +710,20 @@ export default function RunDetailScreen() {
         </>
       )}
 
+      {/* ── GPX Export ── */}
+      {activity.gpx_file_url && (
+        <>
+          <View style={st.divThick} />
+          <Pressable
+            style={st.gpxExportBtn}
+            onPress={() => Linking.openURL(activity.gpx_file_url!)}
+          >
+            <Download size={18} color={WHITE} />
+            <Text style={st.gpxExportText}>GPX 파일 내보내기</Text>
+          </Pressable>
+        </>
+      )}
+
       <View style={{ height: 40 + insets.bottom }} />
     </ScrollView>
   );
@@ -788,4 +803,8 @@ const st = StyleSheet.create({
   zoneBarBg: { flex: 1, height: 16, backgroundColor: '#FFFFFF10', borderRadius: 4 },
   zoneBarFill: { height: 16, borderRadius: 4 },
   zonePct: { color: TERTIARY, fontFamily: F.inter500, fontSize: 11, width: 30, textAlign: 'right' },
+
+  // GPX Export
+  gpxExportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 24, marginVertical: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#333', backgroundColor: '#1A1A1A' },
+  gpxExportText: { color: WHITE, fontFamily: F.inter600, fontSize: 15 },
 });

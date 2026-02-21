@@ -7,6 +7,8 @@
 export interface ApiCoordinate {
   lat: number;
   lng: number;
+  altitude?: number;
+  timestamp?: number;
 }
 
 /** API 경로 좌표 (route_coordinates) */
@@ -73,6 +75,7 @@ export interface ActivityDetail {
   route_coordinates: [number, number][] | ApiCoordinate[];
   start_coordinates: ApiCoordinate;
   end_coordinates: ApiCoordinate;
+  gpx_file_url: string | null;
   created_at: string;
   updated_at: string;
 }

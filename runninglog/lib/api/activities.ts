@@ -67,7 +67,11 @@ export function runRecordToCreatePayload(
 ): CreateActivityPayload {
   const startedAt = new Date(record.startedAt).toISOString();
   const endedAt = new Date(record.finishedAt).toISOString();
-  const route = record.coordinates.map((c) => ({ lat: c.latitude, lng: c.longitude }));
+  const route = record.coordinates.map((c) => ({
+    lat: c.latitude,
+    lng: c.longitude,
+    ...(c.timestamp != null && { timestamp: c.timestamp }),
+  }));
   const startCoord = record.coordinates[0];
   const endCoord = record.coordinates[record.coordinates.length - 1];
 
