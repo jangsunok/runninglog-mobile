@@ -21,19 +21,61 @@ import { getActivity } from '@/lib/api/activities';
 import type { ActivityDetail, ActivitySplit, ApiCoordinate } from '@/types/activity';
 import type { Coordinate } from '@/types/run';
 import { ApiError } from '@/lib/api/client';
-import { BrandOrange, HeartRed, F } from '@/constants/theme';
+import { BrandOrange, HeartRed, Colors, F } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const { width: SW } = Dimensions.get('window');
 const MAP_H = 420;
 
-// Always dark theme for result screen
-const BG = '#0D0D0D';
-const GRID = '#333333';
+// Static defaults for StyleSheet (overridden inline via dt.xxx)
 const WHITE = '#FFFFFF';
+const BG = '#0D0D0D';
 const TERTIARY = '#9CA3AF';
 const MUTED = '#666666';
+const GRID = '#333333';
+
 const PACE_BLUE = '#4A9EFF';
 const ELEV_GREEN = '#4CAF50';
+
+interface DetailTheme {
+  BG: string;
+  TEXT: string;
+  SECONDARY: string;
+  MUTED: string;
+  GRID: string;
+  DIV_THIN: string;
+  DIV_THICK: string;
+  MAP_FALLBACK: string;
+  MAP_BTN_BG: string;
+  GPX_BG: string;
+  GPX_BORDER: string;
+  BAR_BG: string;
+  GRAD_START: string;
+  GRAD_END: string;
+  statusBarStyle: 'light-content' | 'dark-content';
+}
+
+function useDetailTheme(): DetailTheme {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme !== 'light';
+  return useMemo(() => ({
+    BG: isDark ? '#0D0D0D' : '#FFFFFF',
+    TEXT: isDark ? '#FFFFFF' : '#0D0D0D',
+    SECONDARY: isDark ? '#9CA3AF' : '#6B7280',
+    MUTED: isDark ? '#666666' : '#9CA3AF',
+    GRID: isDark ? '#333333' : '#E5E5E5',
+    DIV_THIN: isDark ? '#262626' : '#E5E5E5',
+    DIV_THICK: isDark ? '#1A1A1A' : '#F5F5F5',
+    MAP_FALLBACK: isDark ? '#1F2937' : '#E5E7EB',
+    MAP_BTN_BG: isDark ? '#00000060' : '#00000040',
+    GPX_BG: isDark ? '#1A1A1A' : '#F5F5F5',
+    GPX_BORDER: isDark ? '#333' : '#E5E5E5',
+    BAR_BG: isDark ? '#FFFFFF10' : '#00000008',
+    GRAD_START: isDark ? '#0D0D0DFF' : '#FFFFFFFF',
+    GRAD_END: isDark ? '#0D0D0D00' : '#FFFFFF00',
+    statusBarStyle: isDark ? 'light-content' : 'dark-content',
+  }), [isDark]);
+}
 
 // Chart dimensions
 const C_PAD = 24;
@@ -139,25 +181,25 @@ function hrZones(splits: ActivitySplit[], maxHR: number | null): number[] {
 
 // ── StatCard ─────────────────────────────────
 
-function StatCard({ label, value, unit, icon }: {
-  label: string; value: string; unit?: string; icon?: React.ReactNode;
+function StatCard({ label, value, unit, icon, dt }: {
+  label: string; value: string; unit?: string; icon?: React.ReactNode; dt: DetailTheme;
 }) {
   return (
     <View style={st.statCard}>
-      <Text style={st.statLabel}>{label}</Text>
+      <Text style={[st.statLabel, { color: dt.SECONDARY }]}>{label}</Text>
       <View style={st.statValRow}>
         {icon}
-        <Text style={st.statVal}>{value}</Text>
+        <Text style={[st.statVal, { color: dt.TEXT }]}>{value}</Text>
       </View>
-      {unit && <Text style={st.statUnit}>{unit}</Text>}
+      {unit && <Text style={[st.statUnit, { color: dt.SECONDARY }]}>{unit}</Text>}
     </View>
   );
 }
 
 // ── PaceChart ────────────────────────────────
 
-function PaceChart({ splits, avgPace, bestPace, avgSec }: {
-  splits: ActivitySplit[]; avgPace: string; bestPace: string; avgSec: number;
+function PaceChart({ splits, avgPace, bestPace, avgSec, dt }: {
+  splits: ActivitySplit[]; avgPace: string; bestPace: string; avgSec: number; dt: DetailTheme;
 }) {
   const secs = splits.map(sp => paceToSec(sp.pace));
   const mn = Math.min(...secs);
@@ -181,36 +223,36 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
   const timeLabels = computeTimeXLabels(splits);
 
   return (
-    <View style={st.chartSection}>
+    <View style={[st.chartSection, { backgroundColor: dt.BG }]}>
       <View style={st.chartHeader}>
         <View style={st.chartTitleWrap}>
-          <Text style={st.chartTitle}>페이스</Text>
-          <ChevronDown size={16} color={WHITE} />
+          <Text style={[st.chartTitle, { color: dt.TEXT }]}>페이스</Text>
+          <ChevronDown size={16} color={dt.TEXT} />
         </View>
         <Text style={st.helpText}>도움말</Text>
       </View>
-      <View style={st.hLine} />
+      <View style={[st.hLine, { backgroundColor: dt.GRID }]} />
       <View style={st.chartStatsRow}>
         <View style={st.chartStatCol}>
           <View style={st.chartStatValRow}>
-            <Text style={st.chartStatVal}>{avgPace}</Text>
-            <Text style={st.chartStatUnit}>/km</Text>
+            <Text style={[st.chartStatVal, { color: dt.TEXT }]}>{avgPace}</Text>
+            <Text style={[st.chartStatUnit, { color: dt.SECONDARY }]}>/km</Text>
           </View>
-          <Text style={st.chartStatLabel}>평균</Text>
+          <Text style={[st.chartStatLabel, { color: dt.SECONDARY }]}>평균</Text>
         </View>
-        <View style={st.chartStatDiv} />
+        <View style={[st.chartStatDiv, { backgroundColor: dt.GRID }]} />
         <View style={st.chartStatCol}>
           <View style={st.chartStatValRow}>
-            <Text style={st.chartStatVal}>{bestPace}</Text>
-            <Text style={st.chartStatUnit}>/km</Text>
+            <Text style={[st.chartStatVal, { color: dt.TEXT }]}>{bestPace}</Text>
+            <Text style={[st.chartStatUnit, { color: dt.SECONDARY }]}>/km</Text>
           </View>
-          <Text style={st.chartStatLabel}>최고</Text>
+          <Text style={[st.chartStatLabel, { color: dt.SECONDARY }]}>최고</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row' }}>
         <View style={{ width: Y_W, height: PLOT_H }}>
           {yLabels.map((l, i) => (
-            <Text key={i} style={[st.yLabel, { position: 'absolute', top: i * yGap - 6 }]}>{l}</Text>
+            <Text key={i} style={[st.yLabel, { color: dt.MUTED, position: 'absolute', top: i * yGap - 6 }]}>{l}</Text>
           ))}
         </View>
         <Svg width={PLOT_W} height={PLOT_H}>
@@ -221,28 +263,28 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
             </LinearGradient>
           </Defs>
           {Array.from({ length: yN }, (_, i) => (
-            <Line key={i} x1={0} y1={i * yGap} x2={PLOT_W} y2={i * yGap} stroke={GRID} strokeWidth={1} />
+            <Line key={i} x1={0} y1={i * yGap} x2={PLOT_W} y2={i * yGap} stroke={dt.GRID} strokeWidth={1} />
           ))}
           {area ? <Path d={area} fill="url(#pG)" /> : null}
           {line ? <Path d={line} fill="none" stroke={PACE_BLUE} strokeWidth={1.5} strokeLinecap="round" /> : null}
-          <Line x1={0} y1={avgY} x2={PLOT_W} y2={avgY} stroke="#FFFFFF66" strokeWidth={1} strokeDasharray="4,4" />
+          <Line x1={0} y1={avgY} x2={PLOT_W} y2={avgY} stroke={`${dt.TEXT}66`} strokeWidth={1} strokeDasharray="4,4" />
         </Svg>
       </View>
       {timeLabels ? (
         <>
           <View style={[st.xRow, { paddingLeft: Y_W }]}>
             {timeLabels.map((l, i) => (
-              <Text key={i} style={st.xLabel}>{l}</Text>
+              <Text key={i} style={[st.xLabel, { color: dt.MUTED }]}>{l}</Text>
             ))}
           </View>
           <View style={st.xAxisLabelRow}>
-            <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
+            <Text style={[st.xAxisLabelText, { color: dt.MUTED }]}>시간(시:분:초)</Text>
           </View>
         </>
       ) : (
         <View style={[st.xRow, { paddingLeft: Y_W }]}>
           {splits.map(sp => (
-            <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+            <Text key={sp.split_number} style={[st.xLabel, { color: dt.MUTED }]}>{sp.split_number}km</Text>
           ))}
         </View>
       )}
@@ -252,40 +294,40 @@ function PaceChart({ splits, avgPace, bestPace, avgSec }: {
 
 // ── SplitTable ───────────────────────────────
 
-function SplitTable({ splits, avgPace }: { splits: ActivitySplit[]; avgPace: string }) {
+function SplitTable({ splits, avgPace, dt }: { splits: ActivitySplit[]; avgPace: string; dt: DetailTheme }) {
   const secs = splits.map(sp => paceToSec(sp.pace));
   const mn = Math.min(...secs);
   const mx = Math.max(...secs);
   const rng = mx - mn || 1;
 
   return (
-    <View style={st.chartSection}>
+    <View style={[st.chartSection, { backgroundColor: dt.BG }]}>
       <View style={st.chartHeader}>
-        <Text style={st.chartTitle}>구간별 페이스</Text>
-        <Text style={st.subtitleText}>평균 {avgPace}</Text>
+        <Text style={[st.chartTitle, { color: dt.TEXT }]}>구간별 페이스</Text>
+        <Text style={[st.subtitleText, { color: dt.SECONDARY }]}>평균 {avgPace}</Text>
       </View>
       <View style={st.splitHdr}>
-        <Text style={[st.splitHdrCell, { width: 32 }]}>Km</Text>
-        <Text style={[st.splitHdrCell, { width: 48 }]}>페이스</Text>
+        <Text style={[st.splitHdrCell, { width: 32, color: dt.SECONDARY }]}>Km</Text>
+        <Text style={[st.splitHdrCell, { width: 48, color: dt.SECONDARY }]}>페이스</Text>
         <View style={{ flex: 1 }} />
-        <Text style={[st.splitHdrCell, { width: 40, textAlign: 'right' }]}>고도</Text>
-        <Text style={[st.splitHdrCell, { width: 32, textAlign: 'right' }]}>심박수</Text>
+        <Text style={[st.splitHdrCell, { width: 40, textAlign: 'right', color: dt.SECONDARY }]}>고도</Text>
+        <Text style={[st.splitHdrCell, { width: 32, textAlign: 'right', color: dt.SECONDARY }]}>심박수</Text>
       </View>
-      <View style={st.hLine} />
+      <View style={[st.hLine, { backgroundColor: dt.GRID }]} />
       {splits.map(sp => {
         const pSec = paceToSec(sp.pace);
         const barPct = ((pSec - mn) / rng) * 0.6 + 0.3;
         return (
           <View key={sp.split_number} style={st.splitRow}>
-            <Text style={[st.splitCell, { width: 32 }]}>{sp.split_number}</Text>
-            <Text style={[st.splitCell, { width: 48 }]}>{sp.pace_display}</Text>
-            <View style={st.splitBarWrap}>
+            <Text style={[st.splitCell, { width: 32, color: dt.TEXT }]}>{sp.split_number}</Text>
+            <Text style={[st.splitCell, { width: 48, color: dt.TEXT }]}>{sp.pace_display}</Text>
+            <View style={[st.splitBarWrap, { backgroundColor: dt.BAR_BG }]}>
               <View style={[st.splitBar, { width: `${barPct * 100}%` }]} />
             </View>
-            <Text style={[st.splitCell, { width: 40, textAlign: 'right' }]}>
+            <Text style={[st.splitCell, { width: 40, textAlign: 'right', color: dt.TEXT }]}>
               {sp.elevation_change != null ? sp.elevation_change : '—'}
             </Text>
-            <Text style={[st.splitCell, { width: 32, textAlign: 'right' }]}>
+            <Text style={[st.splitCell, { width: 32, textAlign: 'right', color: dt.TEXT }]}>
               {sp.average_heart_rate ?? '—'}
             </Text>
           </View>
@@ -297,8 +339,8 @@ function SplitTable({ splits, avgPace }: { splits: ActivitySplit[]; avgPace: str
 
 // ── ElevChart ────────────────────────────────
 
-function ElevChart({ data, splits }: {
-  data: number[]; splits: ActivitySplit[];
+function ElevChart({ data, splits, dt }: {
+  data: number[]; splits: ActivitySplit[]; dt: DetailTheme;
 }) {
   const mn = Math.min(...data);
   const mx = Math.max(...data);
@@ -318,35 +360,35 @@ function ElevChart({ data, splits }: {
   const timeLabels = computeTimeXLabels(splits);
 
   return (
-    <View style={st.chartSection}>
+    <View style={[st.chartSection, { backgroundColor: dt.BG }]}>
       <View style={st.chartHeader}>
         <View style={st.chartTitleWrap}>
-          <Text style={st.chartTitle}>고도</Text>
-          <ChevronDown size={16} color={WHITE} />
+          <Text style={[st.chartTitle, { color: dt.TEXT }]}>고도</Text>
+          <ChevronDown size={16} color={dt.TEXT} />
         </View>
       </View>
-      <View style={st.hLine} />
+      <View style={[st.hLine, { backgroundColor: dt.GRID }]} />
       <View style={st.chartStatsRow}>
         <View style={st.chartStatCol}>
           <View style={st.chartStatValRow}>
-            <Text style={st.chartStatVal}>{minElev}</Text>
-            <Text style={st.chartStatUnit}>m</Text>
+            <Text style={[st.chartStatVal, { color: dt.TEXT }]}>{minElev}</Text>
+            <Text style={[st.chartStatUnit, { color: dt.SECONDARY }]}>m</Text>
           </View>
-          <Text style={st.chartStatLabel}>최소</Text>
+          <Text style={[st.chartStatLabel, { color: dt.SECONDARY }]}>최소</Text>
         </View>
-        <View style={st.chartStatDiv} />
+        <View style={[st.chartStatDiv, { backgroundColor: dt.GRID }]} />
         <View style={st.chartStatCol}>
           <View style={st.chartStatValRow}>
-            <Text style={st.chartStatVal}>{maxElev}</Text>
-            <Text style={st.chartStatUnit}>m</Text>
+            <Text style={[st.chartStatVal, { color: dt.TEXT }]}>{maxElev}</Text>
+            <Text style={[st.chartStatUnit, { color: dt.SECONDARY }]}>m</Text>
           </View>
-          <Text style={st.chartStatLabel}>최대</Text>
+          <Text style={[st.chartStatLabel, { color: dt.SECONDARY }]}>최대</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row' }}>
         <View style={{ width: Y_W, height: PLOT_H }}>
           {yLabels.map((l, i) => (
-            <Text key={i} style={[st.yLabel, { position: 'absolute', top: i * yGap - 6 }]}>{l}</Text>
+            <Text key={i} style={[st.yLabel, { color: dt.MUTED, position: 'absolute', top: i * yGap - 6 }]}>{l}</Text>
           ))}
         </View>
         <Svg width={PLOT_W} height={PLOT_H}>
@@ -357,7 +399,7 @@ function ElevChart({ data, splits }: {
             </LinearGradient>
           </Defs>
           {Array.from({ length: yN }, (_, i) => (
-            <Line key={i} x1={0} y1={i * yGap} x2={PLOT_W} y2={i * yGap} stroke={GRID} strokeWidth={1} />
+            <Line key={i} x1={0} y1={i * yGap} x2={PLOT_W} y2={i * yGap} stroke={dt.GRID} strokeWidth={1} />
           ))}
           {area ? <Path d={area} fill="url(#eG)" /> : null}
           {line ? <Path d={line} fill="none" stroke={ELEV_GREEN} strokeWidth={1.5} strokeLinecap="round" /> : null}
@@ -367,17 +409,17 @@ function ElevChart({ data, splits }: {
         <>
           <View style={[st.xRow, { paddingLeft: Y_W }]}>
             {timeLabels.map((l, i) => (
-              <Text key={i} style={st.xLabel}>{l}</Text>
+              <Text key={i} style={[st.xLabel, { color: dt.MUTED }]}>{l}</Text>
             ))}
           </View>
           <View style={st.xAxisLabelRow}>
-            <Text style={st.xAxisLabelText}>시간(시:분:초)</Text>
+            <Text style={[st.xAxisLabelText, { color: dt.MUTED }]}>시간(시:분:초)</Text>
           </View>
         </>
       ) : (
         <View style={[st.xRow, { paddingLeft: Y_W }]}>
           {splits.map(sp => (
-            <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+            <Text key={sp.split_number} style={[st.xLabel, { color: dt.MUTED }]}>{sp.split_number}km</Text>
           ))}
         </View>
       )}
@@ -387,7 +429,7 @@ function ElevChart({ data, splits }: {
 
 // ── CadenceChart ─────────────────────────────
 
-function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] }) {
+function CadenceChart({ avg, splits, dt }: { avg: number; splits: ActivitySplit[]; dt: DetailTheme }) {
   const data = useMemo(
     () => splits.map((_, i) => avg + Math.round(Math.sin(i * 1.5) * avg * 0.08)),
     [avg, splits],
@@ -409,15 +451,15 @@ function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] })
   );
 
   return (
-    <View style={st.chartSection}>
+    <View style={[st.chartSection, { backgroundColor: dt.BG }]}>
       <View style={st.chartHeader}>
-        <Text style={st.chartTitle}>케이던스</Text>
-        <Text style={st.subtitleText}>평균 {avg} spm</Text>
+        <Text style={[st.chartTitle, { color: dt.TEXT }]}>케이던스</Text>
+        <Text style={[st.subtitleText, { color: dt.SECONDARY }]}>평균 {avg} spm</Text>
       </View>
       <View style={{ flexDirection: 'row' }}>
         <View style={{ width: Y_W, height: MINI_H }}>
           {yLabels.map((l, i) => (
-            <Text key={i} style={[st.yLabel, { position: 'absolute', top: i * yGap - 5, fontSize: 9 }]}>{l}</Text>
+            <Text key={i} style={[st.yLabel, { color: dt.MUTED, position: 'absolute', top: i * yGap - 5, fontSize: 9 }]}>{l}</Text>
           ))}
         </View>
         <Svg width={miniPlotW} height={MINI_H}>
@@ -433,7 +475,7 @@ function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] })
       </View>
       <View style={[st.xRow, { paddingLeft: Y_W }]}>
         {splits.map(sp => (
-          <Text key={sp.split_number} style={st.xLabel}>{sp.split_number}km</Text>
+          <Text key={sp.split_number} style={[st.xLabel, { color: dt.MUTED }]}>{sp.split_number}km</Text>
         ))}
       </View>
     </View>
@@ -442,9 +484,9 @@ function CadenceChart({ avg, splits }: { avg: number; splits: ActivitySplit[] })
 
 // ── HRChart + Zones ──────────────────────────
 
-function HRSection({ data, splits, avgHR, maxHR, zones }: {
+function HRSection({ data, splits, avgHR, maxHR, zones, dt }: {
   data: number[]; splits: ActivitySplit[];
-  avgHR: number | null; maxHR: number | null; zones: number[];
+  avgHR: number | null; maxHR: number | null; zones: number[]; dt: DetailTheme;
 }) {
   const mn = Math.min(...data);
   const mx = Math.max(...data);
@@ -466,18 +508,18 @@ function HRSection({ data, splits, avgHR, maxHR, zones }: {
     .map(sp => `${sp.split_number}km`);
 
   return (
-    <View style={st.chartSection}>
+    <View style={[st.chartSection, { backgroundColor: dt.BG }]}>
       <View style={st.chartHeader}>
-        <Text style={st.chartTitle}>심박수</Text>
+        <Text style={[st.chartTitle, { color: dt.TEXT }]}>심박수</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Heart size={14} color={HeartRed} fill={HeartRed} />
-          <Text style={st.subtitleText}>평균 {avgHR ?? '—'} bpm</Text>
+          <Text style={[st.subtitleText, { color: dt.SECONDARY }]}>평균 {avgHR ?? '—'} bpm</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row' }}>
         <View style={{ width: Y_W, height: MINI_H }}>
           {yLabels.map((l, i) => (
-            <Text key={i} style={[st.yLabel, { position: 'absolute', top: i * yGap - 5, fontSize: 9 }]}>{l}</Text>
+            <Text key={i} style={[st.yLabel, { color: dt.MUTED, position: 'absolute', top: i * yGap - 5, fontSize: 9 }]}>{l}</Text>
           ))}
         </View>
         <Svg width={miniPlotW} height={MINI_H}>
@@ -493,20 +535,20 @@ function HRSection({ data, splits, avgHR, maxHR, zones }: {
       </View>
       <View style={[st.xRow, { paddingLeft: Y_W }]}>
         {xLabels.map((l, i) => (
-          <Text key={i} style={st.xLabel}>{l}</Text>
+          <Text key={i} style={[st.xLabel, { color: dt.MUTED }]}>{l}</Text>
         ))}
       </View>
 
       {zones.length === 5 && (
         <View style={st.zoneSection}>
-          <Text style={st.zoneTitle}>심박 존</Text>
+          <Text style={[st.zoneTitle, { color: dt.TEXT }]}>심박 존</Text>
           {[4, 3, 2, 1, 0].map(i => (
             <View key={i} style={st.zoneRow}>
               <Text style={[st.zoneLabel, { color: ZONE_COLORS[i] }]}>{ZONE_LABELS[i]}</Text>
-              <View style={st.zoneBarBg}>
+              <View style={[st.zoneBarBg, { backgroundColor: dt.BAR_BG }]}>
                 <View style={[st.zoneBarFill, { width: `${zones[i]}%`, backgroundColor: ZONE_COLORS[i] }]} />
               </View>
-              <Text style={st.zonePct}>{zones[i]}%</Text>
+              <Text style={[st.zonePct, { color: dt.SECONDARY }]}>{zones[i]}%</Text>
             </View>
           ))}
         </View>
@@ -521,6 +563,7 @@ export default function RunDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const activityId = id ? parseInt(id, 10) : NaN;
   const insets = useSafeAreaInsets();
+  const dt = useDetailTheme();
   const [activity, setActivity] = useState<ActivityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -588,19 +631,19 @@ export default function RunDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[st.centered, { backgroundColor: BG }]}>
-        <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={WHITE} />
+      <View style={[st.centered, { backgroundColor: dt.BG }]}>
+        <StatusBar barStyle={dt.statusBarStyle} />
+        <ActivityIndicator size="large" color={dt.TEXT} />
       </View>
     );
   }
   if (error || !activity) {
     return (
-      <View style={[st.centered, { backgroundColor: BG }]}>
-        <StatusBar barStyle="light-content" />
+      <View style={[st.centered, { backgroundColor: dt.BG }]}>
+        <StatusBar barStyle={dt.statusBarStyle} />
         <Text style={st.errText}>{error ?? '기록을 찾을 수 없습니다.'}</Text>
         <Pressable onPress={() => router.back()} style={st.errBack}>
-          <Text style={st.errBackText}>돌아가기</Text>
+          <Text style={[st.errBackText, { color: dt.TEXT }]}>돌아가기</Text>
         </Pressable>
       </View>
     );
@@ -609,8 +652,8 @@ export default function RunDetailScreen() {
   const avgSec = paceToSec(activity.average_pace);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: BG }} bounces={false}>
-      <StatusBar barStyle="light-content" />
+    <ScrollView style={{ flex: 1, backgroundColor: dt.BG }} bounces={false}>
+      <StatusBar barStyle={dt.statusBarStyle} />
 
       {/* ── Map ── */}
       <View style={st.mapWrap}>
@@ -622,18 +665,18 @@ export default function RunDetailScreen() {
             style={StyleSheet.absoluteFill}
           />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1F2937' }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: dt.MAP_FALLBACK }]} />
         )}
-        <ExpoGradient colors={['#0D0D0DFF', '#0D0D0D00']} style={st.mapGrad} />
+        <ExpoGradient colors={[dt.GRAD_START, dt.GRAD_END]} style={st.mapGrad} />
         <View style={[st.navRow, { paddingTop: insets.top + 8 }]}>
-          <Pressable style={st.mapBtn} onPress={() => router.back()}>
-            <ChevronLeft size={20} color={WHITE} />
+          <Pressable style={[st.mapBtn, { backgroundColor: dt.MAP_BTN_BG }]} onPress={() => router.back()}>
+            <ChevronLeft size={20} color="#FFFFFF" />
           </Pressable>
           <Pressable
-            style={st.mapBtn}
+            style={[st.mapBtn, { backgroundColor: dt.MAP_BTN_BG }]}
             onPress={() => router.push({ pathname: '/(tabs)/run/share-edit' as any, params: { source: 'activity', id: String(activityId) } })}
           >
-            <Share2 size={18} color={WHITE} />
+            <Share2 size={18} color="#FFFFFF" />
           </Pressable>
         </View>
       </View>
@@ -641,20 +684,20 @@ export default function RunDetailScreen() {
       {/* ── Distance ── */}
       <View style={st.distSection}>
         <View style={st.distRow}>
-          <Text style={st.distVal}>{activity.distance_km.toFixed(2)}</Text>
-          <Text style={st.distUnit}>km</Text>
+          <Text style={[st.distVal, { color: dt.TEXT }]}>{activity.distance_km.toFixed(2)}</Text>
+          <Text style={[st.distUnit, { color: dt.SECONDARY }]}>km</Text>
         </View>
-        <Text style={st.dateLabel}>{koreanDate(activity.started_at, activity.ended_at)}</Text>
+        <Text style={[st.dateLabel, { color: dt.SECONDARY }]}>{koreanDate(activity.started_at, activity.ended_at)}</Text>
       </View>
 
-      <View style={st.divThin} />
+      <View style={[st.divThin, { backgroundColor: dt.DIV_THIN }]} />
 
       {/* ── Stats Grid ── */}
       <View style={st.statsGrid}>
         <View style={st.statsRow}>
-          <StatCard label="시간" value={activity.duration_display} />
-          <StatCard label="평균 페이스" value={activity.average_pace_display} />
-          <StatCard label="칼로리" value={`${activity.calories}`} unit="kcal" />
+          <StatCard label="시간" value={activity.duration_display} dt={dt} />
+          <StatCard label="평균 페이스" value={activity.average_pace_display} dt={dt} />
+          <StatCard label="칼로리" value={`${activity.calories}`} unit="kcal" dt={dt} />
         </View>
         <View style={st.statsRow}>
           <StatCard
@@ -662,64 +705,65 @@ export default function RunDetailScreen() {
             value={activity.average_heart_rate ? `${activity.average_heart_rate}` : '—'}
             unit="bpm"
             icon={<Heart size={18} color={HeartRed} fill={HeartRed} />}
+            dt={dt}
           />
-          <StatCard label="케이던스" value={activity.average_cadence ? `${activity.average_cadence}` : '—'} unit="spm" />
-          <StatCard label="걸음" value={steps ? steps.toLocaleString() : '—'} unit="steps" />
+          <StatCard label="케이던스" value={activity.average_cadence ? `${activity.average_cadence}` : '—'} unit="spm" dt={dt} />
+          <StatCard label="걸음" value={steps ? steps.toLocaleString() : '—'} unit="steps" dt={dt} />
         </View>
       </View>
 
-      <View style={st.divThin} />
+      <View style={[st.divThin, { backgroundColor: dt.DIV_THIN }]} />
 
       {/* ── Pace Chart ── */}
       {paceData.length >= 2 && (
         <>
-          <View style={st.divThick} />
-          <PaceChart splits={activity.splits} avgPace={activity.average_pace_display} bestPace={activity.best_pace_display} avgSec={avgSec} />
+          <View style={[st.divThick, { backgroundColor: dt.DIV_THICK }]} />
+          <PaceChart splits={activity.splits} avgPace={activity.average_pace_display} bestPace={activity.best_pace_display} avgSec={avgSec} dt={dt} />
         </>
       )}
 
       {/* ── Split Table ── */}
       {activity.splits.length > 0 && (
         <>
-          <View style={st.divThick} />
-          <SplitTable splits={activity.splits} avgPace={activity.average_pace_display} />
+          <View style={[st.divThick, { backgroundColor: dt.DIV_THICK }]} />
+          <SplitTable splits={activity.splits} avgPace={activity.average_pace_display} dt={dt} />
         </>
       )}
 
       {/* ── Elevation ── */}
       {elevArr.length >= 2 && (
         <>
-          <View style={st.divThick} />
-          <ElevChart data={elevArr} splits={activity.splits} />
+          <View style={[st.divThick, { backgroundColor: dt.DIV_THICK }]} />
+          <ElevChart data={elevArr} splits={activity.splits} dt={dt} />
         </>
       )}
 
       {/* ── Cadence ── */}
       {activity.average_cadence != null && activity.splits.length >= 2 && (
         <>
-          <View style={st.divThick} />
-          <CadenceChart avg={activity.average_cadence} splits={activity.splits} />
+          <View style={[st.divThick, { backgroundColor: dt.DIV_THICK }]} />
+          <CadenceChart avg={activity.average_cadence} splits={activity.splits} dt={dt} />
         </>
       )}
 
       {/* ── Heart Rate + Zones ── */}
       {hrDataArr.length >= 2 && (
         <>
-          <View style={st.divThick} />
-          <HRSection data={hrDataArr} splits={activity.splits} avgHR={activity.average_heart_rate} maxHR={activity.max_heart_rate} zones={zones} />
+          <View style={[st.divThick, { backgroundColor: dt.DIV_THICK }]} />
+          <HRSection data={hrDataArr} splits={activity.splits} avgHR={activity.average_heart_rate} maxHR={activity.max_heart_rate} zones={zones} dt={dt} />
         </>
       )}
 
       {/* ── GPX Export ── */}
       {activity.gpx_file_url && (
         <>
-          <View style={st.divThick} />
+          <View style={[st.divThick, { backgroundColor: dt.DIV_THICK }]} />
           <Pressable
-            style={st.gpxExportBtn}
+            style={[st.gpxExportBtn, { backgroundColor: dt.GPX_BG, borderColor: dt.GPX_BORDER }]}
             onPress={() => Linking.openURL(activity.gpx_file_url!)}
           >
-            <Download size={18} color={WHITE} />
-            <Text style={st.gpxExportText}>GPX 파일 내보내기</Text>
+            <Download size={18} color={dt.TEXT} />
+            <Text style={[st.gpxExportText, { color: dt.TEXT }]}>GPX 파일 내보내기</Text>
           </Pressable>
         </>
       )}
